@@ -132,11 +132,11 @@ export default function MailboxDetailsPage() {
   });
 
   const validateMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       if (!token) {
         throw new Error("Authentication token is missing");
       }
-
+      await refreshMailbox();
       return validateEmailConfig(mailboxId, token);
     },
     onSuccess: () => {
@@ -347,6 +347,14 @@ export default function MailboxDetailsPage() {
                   </p>
                   <p className="mt-2 text-sm font-semibold text-slate-950">
                     {getEmailTypeLabel(mailbox.emailType)}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Has been validated
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-slate-950">
+                    {mailbox.isValidated ? "True" : "False"}
                   </p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">

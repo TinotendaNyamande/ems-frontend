@@ -1,3 +1,4 @@
+import { BASE_URL } from "./helper";
 
 export type AuthResponse = {
   token: string;
@@ -11,6 +12,13 @@ export type AuthResponse = {
       isAllowed: boolean;
     }[];
   };
+};
+
+export type ChangePasswordPayload = {
+  email:string;
+  userId:string;
+  password: string;
+  newPassword: string;
 };
 
 export type ProfileResponse = {
@@ -43,7 +51,6 @@ export type ReportIssuePayload = {
   pageUrl?: string;
 };
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const CSRF_COOKIE_NAME = "csrfToken";
 const CSRF_HEADER_NAME = "X-CSRF-Token";
 
@@ -115,14 +122,14 @@ export const register = async (
 };
 
 
-export const logoutUser = async (): Promise<void> => { 
-    await fetch(`${BASE_URL}/auth/logout`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...getCsrfHeaders() },
-      body: JSON.stringify({}),
-      credentials: "include",
-    })
-  
+export const logoutUser = async (): Promise<void> => {
+  await fetch(`${BASE_URL}/auth/logout`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getCsrfHeaders() },
+    body: JSON.stringify({}),
+    credentials: "include",
+  })
+
 };
 
 
@@ -133,5 +140,28 @@ export const isTokenExpired = (token: string): boolean => {
     return decoded.exp * 1000 < Date.now();
   } catch {
     return true;
+  }
+};
+
+export const getProfile = async (token: string,userId:string): Promise<ProfileResponse> => {
+  const response = await fetch(`${BASE_URL}/auth/profile/${userId}`, {
+    method: "GET",
+    headers: { "Authorization": `Bearer ${token}` },
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail);
+  }
+  return data;
+};
+export const changePassword = async (payload: ChangePasswordPayload, token: string): Promise<void> => {
+  const response = await fetch(`${BASE_URL}/auth/change-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail);
   }
 };

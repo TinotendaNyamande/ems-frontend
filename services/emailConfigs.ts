@@ -1,4 +1,4 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+import { BASE_URL } from "./helper";
 
 export enum EmailType {
   Gmail = 1,
@@ -17,6 +17,7 @@ export type EmailConfigDto = {
   organisationId?: string;
   createdAt?: string;
   lastUpdatedAt?: string;
+  isValidated?: boolean;
 };
 
 export type CreateEmailConfigPayload = {

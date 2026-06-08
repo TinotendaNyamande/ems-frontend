@@ -44,6 +44,12 @@ export const NoOrganisation = () => {
                 >
                   Apply to join one
                 </Link>
+                <Link
+                  href="/organisation/my-join-requests"
+                  className="inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:w-auto"
+                >
+                  View join requests
+                </Link>
               </div>
 
               <p className="mt-4 text-xs text-slate-500">

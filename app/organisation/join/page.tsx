@@ -6,49 +6,29 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSnackbar } from "notistack";
 import { useAuth } from "@/context/AuthContext";
 import {
-  createCompanyJoinRequest,
-  getCompanyJoinRequestsByUser,
-} from "@/services/companyJoinRequests";
-import { getOrganisation } from "@/services/organisation";
+  createJoinRequest,
+  deleteJoinRequest,
+  getUserJoinRequests,
+  type JoinRequestDto,
+} from "@/services/joinRequests";
 
-type CompanyPreview = {
-  name?: string;
-  owner?: {
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-  };
-  createdAt?: string;
-  pendingJoinRequestsCount?: number;
-};
-
-
-const getOwnerLabel = (owner?: CompanyPreview["owner"]) => {
-  const fullName = `${owner?.firstName ?? ""} ${owner?.lastName ?? ""}`.trim();
-  return fullName || owner?.email || "Unknown";
-};
-
-const formatDate = (value?: string) => {
-  if (!value) {
-    return "Not available";
-  }
+function formatDateTime(value?: string | null) {
+  if (!value) return "Not available";
 
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
+  if (Number.isNaN(date.getTime())) return value;
 
-  return date.toLocaleDateString();
-};
+  return date.toLocaleString();
+}
 
 export default function JoinOrganisationPage() {
   const { user, token, isAuthReady } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
   const [companyIdInput, setCompanyIdInput] = useState("");
-  const [lookupCompanyId, setLookupCompanyId] = useState("");
   const trimmedCompanyId = companyIdInput.trim();
   const userId = user?.id ?? null;
+  const joinRequestsQueryKey = ["joinRequestsByUser", userId, token];
 
   const {
     data: existingRequests,
@@ -56,24 +36,36 @@ export default function JoinOrganisationPage() {
     error: existingRequestsError,
     isError: isRequestsError,
   } = useQuery({
-    queryKey: ["joinRequestsByUser", userId, token],
+    queryKey: joinRequestsQueryKey,
     enabled: isAuthReady && !!userId && !!token,
-    queryFn: () => getCompanyJoinRequestsByUser(userId!, token),
+    queryFn: (): Promise<JoinRequestDto[]> => getUserJoinRequests(userId!, token!),
   });
 
   const hasPendingRequest = (existingRequests?.length ?? 0) > 0;
 
   const applyMutation = useMutation({
-    mutationFn: (companyId: string) => createCompanyJoinRequest(companyId, userId!, token),
+    mutationFn: (organisationId: string) =>
+      createJoinRequest({ requestById: userId!, organisationId }, token!),
     onSuccess: async () => {
       enqueueSnackbar("Join request submitted successfully.", { variant: "success" });
-      await queryClient.invalidateQueries({
-        queryKey: ["joinRequestsByUser", userId, token],
-      });
+      await queryClient.invalidateQueries({ queryKey: joinRequestsQueryKey });
     },
     onError: (error: unknown) => {
+      console.log("Error submitting join request:", );
       const message =
-        error instanceof Error ? error.message : "Failed to submit join request. Please try again.";
+        error instanceof Error ? error.message   : "Failed to submit join request. Please try again.";
+      enqueueSnackbar(message, { variant: "error" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (requestId: string) => deleteJoinRequest(requestId, token!),
+    onSuccess: async () => {
+      enqueueSnackbar("Join request deleted.", { variant: "success" });
+      await queryClient.invalidateQueries({ queryKey: joinRequestsQueryKey });
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Failed to delete join request.";
       enqueueSnackbar(message, { variant: "error" });
     },
   });
@@ -88,10 +80,10 @@ export default function JoinOrganisationPage() {
     }
 
 
-    if (hasPendingRequest) {
-      enqueueSnackbar("You already have a pending join request.", { variant: "warning" });
-      return;
-    }
+    // if (hasPendingRequest) {
+    //   enqueueSnackbar("You already have a pending join request.", { variant: "warning" });
+    //   return;
+    // }
 
     await applyMutation.mutateAsync(trimmedCompanyId);
   };
@@ -112,7 +104,7 @@ export default function JoinOrganisationPage() {
     );
   }
 
-  if (user.companyId) {
+  if (user.organisationId) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
         <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white/70 p-6 shadow-sm backdrop-blur">
@@ -194,14 +186,35 @@ export default function JoinOrganisationPage() {
               <p className="text-sm font-semibold text-amber-900">You already have a pending request</p>
   
               <ul className="mt-3 space-y-2">
-                {existingRequests?.map((request, index) => (
-                  <li
-                    key={request.id ?? `pending-request-${index}`}
-                    className="rounded-xl bg-white px-4 py-3 text-sm text-slate-700 ring-1 ring-amber-200"
-                  >
-                    Request ID: {request.id || "Unavailable"}
-                  </li>
-                ))}
+                {existingRequests?.map((request, index) => {
+                  const isDeleting = deleteMutation.isPending && deleteMutation.variables === request.id;
+
+                  return (
+                    <li
+                      key={request.id ?? `pending-request-${index}`}
+                      className="rounded-xl bg-white px-4 py-3 text-sm text-slate-700 ring-1 ring-amber-200"
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="break-all font-medium text-slate-900">
+                            Request ID: {request.id || "Unavailable"}
+                          </p>
+                          <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">
+                            {request.status || "Pending"} | Requested {formatDateTime(request.requestedAt)}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={isDeleting}
+                          onClick={() => deleteMutation.mutate(request.id)}
+                          className="inline-flex items-center justify-center rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-900 shadow-sm transition hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {isDeleting ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ) : (

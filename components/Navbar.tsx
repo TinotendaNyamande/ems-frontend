@@ -37,10 +37,15 @@ export default function Navbar() {
     () => [
       { href: "/", label: "Dashboard", auth: "any" },
       { href: "/organisation", label: "Organisation", auth: "in" },
+      { href: "/organisation/users", label: "Users", auth: "in", company: "has" },
+      { href: "/organisation/roles", label: "Roles", auth: "in", company: "has" },
+      { href: "/organisation/manage", label: "Manage Org", auth: "in", company: "has" },
+      { href: "/organisation/requests", label: "Requests", auth: "in", company: "has" },
       { href: "/mailboxes", label: "Mailboxes", auth: "in", company: "has" },
       { href: "/contacts", label: "Contacts", auth: "in", company: "has" },
       { href: "/organisation/create", label: "Create Org", auth: "in", company: "none" },
       { href: "/organisation/join", label: "Join Org", auth: "in", company: "none" },
+      { href: "/organisation/my-join-requests", label: "My Requests", auth: "in", company: "none" },
       { href: "/forgot-password", label: "Forgot Password", auth: "out" },
     ],
     []
