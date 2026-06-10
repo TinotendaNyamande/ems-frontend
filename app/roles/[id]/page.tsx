@@ -66,9 +66,14 @@ export default function OrganisationRoleDetailsPage() {
     },
   });
 
-  const handlePermissionToggle = (permission: PermissionDto) => {
+  const handlePermissionToggle = (permissionId: string, permissionKey: string, isAllowed: boolean, roleId: string) => {
     if (!role) return;
-
+    const permission:PermissionDto={
+      id: permissionId,
+      permissionKey: permissionKey,
+      isAllowed:isAllowed,
+      organisationRoleId: roleId
+    } 
     const nextPermission = { ...permission, isAllowed: !permission.isAllowed };
 
     editPermissionsMutation.mutate({
@@ -117,7 +122,7 @@ export default function OrganisationRoleDetailsPage() {
               </p>
             </div>
             <Link
-              href="/organisation/roles"
+              href="/roles"
               className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-300 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             >
               Back to roles
@@ -203,7 +208,7 @@ export default function OrganisationRoleDetailsPage() {
                           type="checkbox"
                           checked={permission.isAllowed}
                           disabled={isSaving}
-                          onChange={() => handlePermissionToggle(permission)}
+                          onChange={() => handlePermissionToggle(permission.id,permission.permissionKey,permission.isAllowed,role.id)}
                           className="mt-1 size-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-70"
                         />
                         <span className="min-w-0">

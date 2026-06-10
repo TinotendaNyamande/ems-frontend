@@ -5,7 +5,10 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSnackbar } from "notistack";
 import { NoOrganisation } from "@/components/NoOrganisationDashboard";
+import { CanPerformAction } from "@/components/CanPerformAction";
+import { ProtectedPage } from "@/components/ProtectedPage";
 import { useAuth } from "@/context/AuthContext";
+import { PermissionKeys } from "@/contants/PermissionKey";
 import {
   approveJoinRequest,
   deleteJoinRequest,
@@ -225,7 +228,8 @@ export default function OrganisationRequestsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-10">
+    <ProtectedPage permission={PermissionKeys.JoinRequestsView}>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-10">
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         <section className="rounded-2xl border border-slate-200 bg-white/75 p-6 shadow-sm backdrop-blur sm:p-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -240,12 +244,14 @@ export default function OrganisationRequestsPage() {
                 Review pending applications, approve users into a role, or audit all previous requests.
               </p>
             </div>
-            <Link
-              href="/organisation"
-              className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-300 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-            >
-              Back to organisation
-            </Link>
+            <CanPerformAction permission={PermissionKeys.OrganisationView}>
+              <Link
+                href="/organisation"
+                className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-300 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+              >
+                Back to organisation
+              </Link>
+            </CanPerformAction>
           </div>
         </section>
 
@@ -360,67 +366,71 @@ export default function OrganisationRequestsPage() {
                       </div>
 
                       {view === "pending" ? (
-                        <div className="flex w-full flex-col gap-3 lg:w-80">
-                          <select
-                            aria-label={`Role for ${getUserLabel(request.requestedBy)}`}
-                            value={selectedRoleId}
-                            disabled={!roles?.length || isApproving || isRejecting || isDeleting}
-                            onChange={(event) =>
-                              setRoleByRequestId((current) => ({
-                                ...current,
-                                [request.id]: event.target.value,
-                              }))
-                            }
-                            className="block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-70"
-                          >
-                            <option value="">Select role</option>
-                            {roles?.map((role) => (
-                              <option key={role.id} value={role.id}>
-                                {role.roleName}
-                              </option>
-                            ))}
-                          </select>
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              type="button"
-                              disabled={!selectedRoleId || isApproving || isRejecting || isDeleting}
-                              onClick={() =>
-                                approveMutation.mutate({
-                                  requestId: request.id,
-                                  roleId: selectedRoleId,
-                                })
+                        <CanPerformAction permission={PermissionKeys.JoinRequestsApprove}>
+                          <div className="flex w-full flex-col gap-3 lg:w-80">
+                            <select
+                              aria-label={`Role for ${getUserLabel(request.requestedBy)}`}
+                              value={selectedRoleId}
+                              disabled={!roles?.length || isApproving || isRejecting || isDeleting}
+                              onChange={(event) =>
+                                setRoleByRequestId((current) => ({
+                                  ...current,
+                                  [request.id]: event.target.value,
+                                }))
                               }
-                              className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                              className="block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-70"
                             >
-                              {isApproving ? "Approving..." : "Approve"}
-                            </button>
+                              <option value="">Select role</option>
+                              {roles?.map((role) => (
+                                <option key={role.id} value={role.id}>
+                                  {role.roleName}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                type="button"
+                                disabled={!selectedRoleId || isApproving || isRejecting || isDeleting}
+                                onClick={() =>
+                                  approveMutation.mutate({
+                                    requestId: request.id,
+                                    roleId: selectedRoleId,
+                                  })
+                                }
+                                className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                              >
+                                {isApproving ? "Approving..." : "Approve"}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isApproving || isRejecting || isDeleting}
+                                onClick={() => rejectMutation.mutate(request.id)}
+                                className="inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-rose-300"
+                              >
+                                {isRejecting ? "Rejecting..." : "Reject"}
+                              </button>
+                            </div>
                             <button
                               type="button"
                               disabled={isApproving || isRejecting || isDeleting}
-                              onClick={() => rejectMutation.mutate(request.id)}
-                              className="inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-rose-300"
+                              onClick={() => deleteMutation.mutate(request.id)}
+                              className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                              {isRejecting ? "Rejecting..." : "Reject"}
+                              {isDeleting ? "Deleting..." : "Delete request"}
                             </button>
                           </div>
+                        </CanPerformAction>
+                      ) : (
+                        <CanPerformAction permission={PermissionKeys.JoinRequestsApprove}>
                           <button
                             type="button"
-                            disabled={isApproving || isRejecting || isDeleting}
+                            disabled={isDeleting}
                             onClick={() => deleteMutation.mutate(request.id)}
-                            className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 lg:w-auto"
                           >
                             {isDeleting ? "Deleting..." : "Delete request"}
                           </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled={isDeleting}
-                          onClick={() => deleteMutation.mutate(request.id)}
-                          className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 lg:w-auto"
-                        >
-                          {isDeleting ? "Deleting..." : "Delete request"}
-                        </button>
+                        </CanPerformAction>
                       )}
                     </div>
                   </li>
@@ -430,6 +440,7 @@ export default function OrganisationRequestsPage() {
           )}
         </section>
       </main>
-    </div>
+      </div>
+    </ProtectedPage>
   );
 }

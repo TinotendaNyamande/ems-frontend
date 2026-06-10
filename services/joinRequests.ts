@@ -47,11 +47,9 @@ export const createJoinRequest = async (CreateJoinRequestDto: CreateJoinRequestD
     if (!response.ok) {
         const errors = await response.json();
         if (errors.errors) {
-            console.log("Errors", errors)
             const message = Object.values(errors.errors)
                 .flat()
                 .join(", ");
-            console.log("Errors", message)
             throw new Error(message)
         }else {
             throw new Error(errors.detail || "Failed to submit join request. Please try again.")

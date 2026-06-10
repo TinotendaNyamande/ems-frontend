@@ -45,7 +45,7 @@ export const getAllUsers = async (token: string, organisationId?: string): Promi
   return response.json() as Promise<User[]>;
 };
 export const CreateUser = async (token: string, userData: CreateUserRequest): Promise<void> => {
-  const response = await fetch(`${BASE_URL}/users/create`, {
+  const response = await fetch(`${BASE_URL}/users/create-user`, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${token}`,
@@ -54,7 +54,16 @@ export const CreateUser = async (token: string, userData: CreateUserRequest): Pr
     body: JSON.stringify(userData)
   });
   if (!response.ok) {
-    throw new Error("Failed to create user");
+        const errors = await response.json();
+
+        if (errors.errors) {
+            const message = Object.values(errors.errors)
+                .flat()
+                .join(", ");
+            throw new Error(message)
+        }else {
+            throw new Error(errors.detail || "Failed to submit join request. Please try again.")
+        }
   }
 };
 

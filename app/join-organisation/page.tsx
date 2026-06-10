@@ -51,7 +51,6 @@ export default function JoinOrganisationPage() {
       await queryClient.invalidateQueries({ queryKey: joinRequestsQueryKey });
     },
     onError: (error: unknown) => {
-      console.log("Error submitting join request:", );
       const message =
         error instanceof Error ? error.message   : "Failed to submit join request. Please try again.";
       enqueueSnackbar(message, { variant: "error" });

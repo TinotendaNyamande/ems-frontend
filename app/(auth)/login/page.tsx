@@ -26,7 +26,6 @@ export default function LoginPage() {
       setEmail("");
       setPassword("");
     } catch (error: unknown) {
-      console.log("Login Error",error)
       const message =
         error instanceof Error ? error.message : "Failed to login. Please try again.";
       enqueueSnackbar(message, { variant: "error" });

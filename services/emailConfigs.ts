@@ -33,7 +33,17 @@ export type CreateEmailConfigPayload = {
 export type TestEmailConfigPayload = {
   toEmail: string;
 };
+export type ChangePasswordDto ={
+  newPassword: string;
+  oldPassword: string;
+  emailId: string;
+}
 
+export type ChangeSecretDto ={
+  newSecret: string;
+  oldSecret: string;
+  emailId: string;
+}
 
 export async function getEmailConfigs(
   organisationId: string,
@@ -50,10 +60,19 @@ export async function getEmailConfigs(
       },
     }
   );
-if(!response.ok) {
-  const data = await response.json();
-  throw new Error(data.detail || "Failed to fetch email configurations.");
-}
+  if (!response.ok) {
+    const errors = await response.json();
+
+    if (errors.errors) {
+      const message = Object.values(errors.errors)
+        .flat()
+        .join(", ");
+      throw new Error(message)
+    } else {
+      throw new Error(errors.detail || "Failed to fetch email configurations.");
+    }
+
+  }
   return await response.json();
 }
 
@@ -69,7 +88,19 @@ export async function createEmailConfig(
     },
     body: JSON.stringify(payload),
   });
+  if (!response.ok) {
+    const errors = await response.json();
 
+    if (errors.errors) {
+      const message = Object.values(errors.errors)
+        .flat()
+        .join(", ");
+      throw new Error(message)
+    } else {
+      throw new Error(errors.detail || "Failed to fetch email configurations.");
+    }
+
+  }
   const data = await response.json();
   return data;
 }
@@ -88,8 +119,17 @@ export async function testEmailConfig(
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data.detail || "Failed to send test email");
+    const errors = await response.json();
+
+    if (errors.errors) {
+      const message = Object.values(errors.errors)
+        .flat()
+        .join(", ");
+      throw new Error(message)
+    } else {
+      throw new Error(errors.detail || "Failed to send test email");
+    }
+
   }
 }
 
@@ -100,9 +140,24 @@ export async function validateEmailConfig(id: string, token: string): Promise<vo
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-  
+
   });
+  if (!response.ok) {
+    const errors = await response.json();
+
+    if (errors.errors) {
+      const message = Object.values(errors.errors)
+        .flat()
+        .join(", ");
+      throw new Error(message)
+    } else {
+      throw new Error(errors.detail || "Failed to validate email configuration ");
+    }
+  }
   const data = await response.json();
+  if (data == false) {
+    throw new Error("Email configuration is invalid. Please check the details and try again.");
+  }
   return data;
 }
 export async function deleteEmailConfig(id: string, token: string): Promise<void> {
@@ -112,11 +167,20 @@ export async function deleteEmailConfig(id: string, token: string): Promise<void
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-  
+
   });
   if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data.detail || "Failed to update email configuration");
+    const errors = await response.json();
+
+    if (errors.errors) {
+      const message = Object.values(errors.errors)
+        .flat()
+        .join(", ");
+      throw new Error(message)
+    } else {
+      throw new Error(errors.detail || "Failed to delete email configuration");
+    }
+
   }
 }
 
@@ -135,8 +199,15 @@ export async function updateEmailConfig(
   });
 
   if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data.detail || "Failed to delete email configuration");
+    const errors = await response.json();
+    if (errors.errors) {
+      const message = Object.values(errors.errors)
+        .flat()
+        .join(", ");
+      throw new Error(message)
+    } else {
+      throw new Error(errors.detail || "Failed to update email configuration");
+    }
   }
 }
 
@@ -147,8 +218,74 @@ export async function getEmailConfigById(id: string, token: string): Promise<Ema
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-  
+
   });
+  if (!response.ok) {
+    const errors = await response.json();
+    if (errors.errors) {
+      const message = Object.values(errors.errors)
+        .flat()
+        .join(", ");
+      throw new Error(message)
+    } else {
+      throw new Error(errors.detail || "Failed to fetch email configuration");
+    }
+  }
   const data = await response.json();
   return data;
+}
+
+
+export async function changeEmailConfigPassword(
+  id: string,
+  payload: Partial<ChangePasswordDto>,
+  token: string
+): Promise<void> {
+  const response = await fetch(`${BASE_URL}/emailconfiguration/change-password/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errors = await response.json();
+    if (errors.errors) {
+      const message = Object.values(errors.errors)
+        .flat()
+        .join(", ");
+      throw new Error(message)
+    } else {
+      throw new Error(errors.detail || "Failed to update email configuration");
+    }
+  }
+}
+
+export async function changeEmailConfigSecret(
+  id: string,
+  payload: Partial<ChangeSecretDto>,
+  token: string
+): Promise<void> {
+  const response = await fetch(`${BASE_URL}/emailconfiguration/change-client-secret/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errors = await response.json();
+    if (errors.errors) {
+      const message = Object.values(errors.errors)
+        .flat()
+        .join(", ");
+      throw new Error(message)
+    } else {
+      throw new Error(errors.detail || "Failed to update email configuration");
+    }
+  }
 }

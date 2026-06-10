@@ -5,13 +5,17 @@ import { login,register as apiRegister, refreshToken, logoutUser, AuthResponse }
 import { jwtDecode, JwtPayload } from "jwt-decode";
 
 
-
+export type UserPermission = {
+  permissionKey: string;
+  isAllowed: boolean;
+};
 type User = {
   id: string;
   email: string;
   role: string;
   firstName: string;
   organisationId: string;
+  permissions: UserPermission[];
 };
 
 type DecodedJwt = JwtPayload & {
@@ -136,9 +140,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser({
       id: response.userId,
       email: response.email,
-      role: response.rolePermissions?.roleName ?? role ?? "",
+      role: response.role ?? role ?? "",
       firstName: decodedToken.FirstName ?? "",
       organisationId: decodedToken.OrganisationId ?? "",
+      permissions: response.permissions ?? [],
     });
     setTokenStorage(jwt,response.refreshToken);
     setIsAuthReady(true);

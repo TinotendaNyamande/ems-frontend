@@ -205,12 +205,12 @@ export default function ManageOrganisationPage() {
                 Update organisation details, transfer ownership, or remove the workspace.
               </p>
             </div>
-            <Link
+            {/* <Link
               href="/organisation"
               className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-300 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             >
               Back to organisation
-            </Link>
+            </Link> */}
           </div>
         </section>
 

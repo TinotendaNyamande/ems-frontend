@@ -5,18 +5,17 @@ export type AuthResponse = {
   email: string;
   userId: string;
   refreshToken: string;
-  rolePermissions?: {
-    roleName?: string;
-    permissions?: {
-      permissionKey: string;
-      isAllowed: boolean;
-    }[];
-  };
+  role:string;
+  permissions?: {
+    permissionKey: string;
+    isAllowed: boolean;
+  }[];
 };
 
+
 export type ChangePasswordPayload = {
-  email:string;
-  userId:string;
+  email: string;
+  userId: string;
   password: string;
   newPassword: string;
 };
@@ -143,7 +142,7 @@ export const isTokenExpired = (token: string): boolean => {
   }
 };
 
-export const getProfile = async (token: string,userId:string): Promise<ProfileResponse> => {
+export const getProfile = async (token: string, userId: string): Promise<ProfileResponse> => {
   const response = await fetch(`${BASE_URL}/auth/profile/${userId}`, {
     method: "GET",
     headers: { "Authorization": `Bearer ${token}` },

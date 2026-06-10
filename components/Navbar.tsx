@@ -4,12 +4,15 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { CanPerformAction } from "./CanPerformAction";
+import { PermissionKeys, UiPermissionKeys } from "@/contants/PermissionKey";
 
 type NavItem = {
   href: string;
   label: string;
   auth?: "any" | "in" | "out";
   company?: "any" | "has" | "none";
+  permission: string;
 };
 
 function getInitials(name: string) {
@@ -35,18 +38,16 @@ export default function Navbar() {
 
   const navItems: NavItem[] = useMemo(
     () => [
-      { href: "/", label: "Dashboard", auth: "any" },
-      { href: "/organisation", label: "Organisation", auth: "in" },
-      { href: "/organisation/users", label: "Users", auth: "in", company: "has" },
-      { href: "/organisation/roles", label: "Roles", auth: "in", company: "has" },
-      { href: "/organisation/manage", label: "Manage Org", auth: "in", company: "has" },
-      { href: "/organisation/requests", label: "Requests", auth: "in", company: "has" },
-      { href: "/mailboxes", label: "Mailboxes", auth: "in", company: "has" },
-      { href: "/contacts", label: "Contacts", auth: "in", company: "has" },
-      { href: "/organisation/create", label: "Create Org", auth: "in", company: "none" },
-      { href: "/organisation/join", label: "Join Org", auth: "in", company: "none" },
-      { href: "/organisation/my-join-requests", label: "My Requests", auth: "in", company: "none" },
-      { href: "/forgot-password", label: "Forgot Password", auth: "out" },
+      { href: "/", label: "Dashboard", auth: "any", permission: UiPermissionKeys.Allow },
+      { href: "/users", label: "Users", auth: "in", company: "has", permission: PermissionKeys.UsersView },
+      { href: "/roles", label: "Roles", auth: "in", company: "has", permission: PermissionKeys.PermissionsView },
+      { href: "/manage", label: "Manage Org", auth: "in", company: "has", permission: PermissionKeys.OrganisationEdit },
+      { href: "/requests", label: "Requests", auth: "in", company: "has", permission: PermissionKeys.JoinRequestsView },
+      { href: "/mailboxes", label: "Mailboxes", auth: "in", company: "has", permission: PermissionKeys.MailBoxesView },
+      { href: "/create-organisation", label: "Create Org", auth: "in", company: "none", permission: UiPermissionKeys.Allow },
+      { href: "/join-organisation", label: "Join Org", auth: "in", company: "none", permission: UiPermissionKeys.Allow },
+      { href: "/my-join-requests", label: "My Requests", auth: "in", company: "none", permission: UiPermissionKeys.Allow },
+      { href: "/forgot-password", label: "Forgot Password", auth: "out", permission: UiPermissionKeys.Allow },
     ],
     []
   );
@@ -92,8 +93,9 @@ export default function Navbar() {
             {filteredNavItems.map((item) => {
               const active = isActivePath(pathname, item.href);
               return (
+                <CanPerformAction key={item.href} permission={item.permission}>
                   <Link
-                    key={item.href}
+
                     href={item.href}
                     aria-current={active ? "page" : undefined}
                     className={[
@@ -106,6 +108,7 @@ export default function Navbar() {
                   >
                     {item.label}
                   </Link>
+                </CanPerformAction>
               );
             })}
           </nav>
@@ -203,6 +206,7 @@ export default function Navbar() {
             {filteredNavItems.map((item) => {
               const active = isActivePath(pathname, item.href);
               return (
+                <CanPerformAction key={item.href} permission={item.permission}>
                   <Link
                     key={item.href}
                     href={item.href}
@@ -217,6 +221,7 @@ export default function Navbar() {
                   >
                     {item.label}
                   </Link>
+                </CanPerformAction>
               );
             })}
           </nav>
