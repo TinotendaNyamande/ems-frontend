@@ -7,6 +7,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { SnackbarProvider } from "notistack";
 import { notify } from "@/lib/notification";
 import { usePathname } from "next/navigation";
+import { ConfirmProvider } from "@/lib/confirmProvider";
 
 
 export default function Providers({
@@ -41,20 +42,23 @@ export default function Providers({
 
   return (
     <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <SnackbarProvider
-            maxSnack={3}
-            autoHideDuration={3000}
-            anchorOrigin={{
-              vertical: "bottom",
-              horizontal: "center",
-            }}
-          >
-            <Navbar key={pathname}  />
+      <AuthProvider>
+        <SnackbarProvider
+          maxSnack={3}
+          autoHideDuration={3000}
+          anchorOrigin={{
+            vertical: "bottom",
+            horizontal: "center",
+          }}
+        >
+          <Navbar key={pathname} />
+          <ConfirmProvider>
             <main style={{ width: "100%", maxWidth: "100vw" }}>{children}</main>
-            {/* <SiteFooter /> */}
-          </SnackbarProvider>
-        </AuthProvider>
+          </ConfirmProvider>
+
+          {/* <SiteFooter /> */}
+        </SnackbarProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

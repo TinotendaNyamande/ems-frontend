@@ -24,6 +24,7 @@ import {
 import { ProtectedPage } from "@/components/ProtectedPage";
 import { PermissionKeys } from "@/contants/PermissionKey";
 import { CanPerformAction } from "@/components/CanPerformAction";
+import { useConfirm } from "@/context/useConfirm";
 
 const EMAIL_TYPES = [
   { value: EmailType.Gmail, label: "Gmail" },
@@ -87,6 +88,7 @@ export default function MailboxDetailsPage() {
   const { user, isAuthReady, token } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
   const mailboxId = params.id;
   const organisationId = user?.organisationId ?? "";
   const mailboxQueryKey = useMemo(
@@ -246,8 +248,17 @@ export default function MailboxDetailsPage() {
     deleteMutation.isPending ||
     testEmailMutation.isPending;
 
-  const handleEditSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleEditSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const confirmed = await confirm({
+      title: "Save",
+      message: "Are you sure you want to save these changes",
+      confirmText: "Save",
+      cancelText: "Cancel"
+    })
+    if (!confirmed) {
+      return;
+    }
 
     const payload: Partial<CreateEmailConfigPayload> = {
       emailAddress: editForm.emailAddress.trim(),
@@ -283,8 +294,14 @@ export default function MailboxDetailsPage() {
     testEmailMutation.mutate({ toEmail: toEmail.trim() });
   };
 
-  const handleDelete = () => {
-    if (!window.confirm("Delete this mailbox? This action cannot be undone.")) {
+  const handleDelete = async () => {
+    const confirmed = await confirm({
+      title: "Delete email account",
+      message: "This action cannot be undone",
+      confirmText: "Delete",
+      cancelText: "Cancel"
+    })
+    if (!confirmed) {
       return;
     }
 
