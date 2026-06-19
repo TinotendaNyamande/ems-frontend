@@ -19,8 +19,8 @@ import {
   updateEmailConfig,
   validateEmailConfig,
   type CreateEmailConfigPayload,
-  type EmailConfigDto,
-} from "@/services/emailConfigs";
+  type EmailAccountDto,
+} from "@/services/emailAccounts";
 import { ProtectedPage } from "@/components/ProtectedPage";
 import { PermissionKeys } from "@/contants/PermissionKey";
 import { CanPerformAction } from "@/components/CanPerformAction";
@@ -41,7 +41,7 @@ const emptyEditForm = {
   tenantId: "",
 };
 
-function getEmailTypeLabel(value: EmailConfigDto["emailType"]) {
+function getEmailTypeLabel(value: EmailAccountDto["emailType"]) {
   if (typeof value === "string" && value.trim()) {
     const numericValue = Number(value);
     if (!Number.isNaN(numericValue)) {
@@ -61,7 +61,7 @@ function getDateLabel(value?: string) {
   return date.toLocaleString();
 }
 
-function getEmailTypeValue(value: EmailConfigDto["emailType"]) {
+function getEmailTypeValue(value: EmailAccountDto["emailType"]) {
   const numericValue = Number(value);
   if (Number.isNaN(numericValue)) {
     return EmailType.Gmail;
@@ -70,18 +70,18 @@ function getEmailTypeValue(value: EmailConfigDto["emailType"]) {
   return numericValue as EmailType;
 }
 
-function getEditFormFromMailbox(mailbox: EmailConfigDto) {
+function getEditFormFromEmailAccount(emailAccount: EmailAccountDto) {
   return {
-    emailAddress: mailbox.emailAddress ?? "",
-    emailType: getEmailTypeValue(mailbox.emailType),
+    emailAddress: emailAccount.emailAddress ?? "",
+    emailType: getEmailTypeValue(emailAccount.emailType),
     password: "",
-    clientId: mailbox.clientId ?? "",
+    clientId: emailAccount.clientId ?? "",
     clientSecret: "",
-    tenantId: mailbox.tenantId ?? "",
+    tenantId: emailAccount.tenantId ?? "",
   };
 }
 
-export default function MailboxDetailsPage() {
+export default function EmailAccountDetailsPage() {
   const params = useParams<{ id: string }>();
 
   const router = useRouter();
@@ -89,11 +89,11 @@ export default function MailboxDetailsPage() {
   const { enqueueSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
   const confirm = useConfirm();
-  const mailboxId = params.id;
+  const emailAccountId = params.id;
   const organisationId = user?.organisationId ?? "";
-  const mailboxQueryKey = useMemo(
-    () => ["emailConfig", mailboxId, token],
-    [mailboxId, token]
+  const emailAccountQueryKey = useMemo(
+    () => ["emailAccount", emailAccountId, token],
+    [emailAccountId, token]
   );
   const [editForm, setEditForm] = useState(emptyEditForm);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -103,21 +103,21 @@ export default function MailboxDetailsPage() {
   const [newSecret, setNewSecret] = useState("");
 
   const {
-    data: mailbox,
+    data: emailAccount,
     isLoading,
     isError,
     error,
     refetch,
   } = useQuery({
-    queryKey: mailboxQueryKey,
-    enabled: isAuthReady && Boolean(mailboxId && token),
-    queryFn: () => getEmailConfigById(mailboxId, token as string),
+    queryKey: emailAccountQueryKey,
+    enabled: isAuthReady && Boolean(emailAccountId && token),
+    queryFn: () => getEmailConfigById(emailAccountId, token as string),
   });
 
-  const refreshMailbox = async () => {
+  const refreshemailAccount = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: mailboxQueryKey }),
-      queryClient.invalidateQueries({ queryKey: ["emailConfigs"] }),
+      queryClient.invalidateQueries({ queryKey: emailAccountQueryKey }),
+      queryClient.invalidateQueries({ queryKey: ["emailAccounts"] }),
     ]);
   };
 
@@ -128,22 +128,22 @@ export default function MailboxDetailsPage() {
       }
       var changePasswordPayload: ChangePasswordDto = {
         newPassword: newPassword,
-        oldPassword: mailbox?.password || "",
-        emailId: mailboxId
+        oldPassword: emailAccount?.password || "",
+        emailId: emailAccountId
       }
 
-      return changeEmailConfigPassword(mailboxId, changePasswordPayload, token);
+      return changeEmailConfigPassword(emailAccountId, changePasswordPayload, token);
     },
     onSuccess: async () => {
       setIsEditModalOpen(false);
-      enqueueSnackbar("Mailbox updated successfully.", { variant: "success" });
-      await refreshMailbox();
+      enqueueSnackbar("Email Account updated successfully.", { variant: "success" });
+      await refreshemailAccount();
     },
     onError: (updateError: unknown) => {
       const message =
         updateError instanceof Error
           ? updateError.message
-          : "Failed to update mailbox. Please try again.";
+          : "Failed to update Email Account. Please try again.";
       enqueueSnackbar(message, { variant: "error" });
     },
   });
@@ -155,22 +155,22 @@ export default function MailboxDetailsPage() {
       }
       var changeSecretPayload: ChangeSecretDto = {
         newSecret: newSecret,
-        oldSecret: mailbox?.clientSecret || "",
-        emailId: mailboxId
+        oldSecret: emailAccount?.clientSecret || "",
+        emailId: emailAccountId
       }
 
-      return changeEmailConfigSecret(mailboxId, changeSecretPayload, token);
+      return changeEmailConfigSecret(emailAccountId, changeSecretPayload, token);
     },
     onSuccess: async () => {
       setIsEditModalOpen(false);
-      enqueueSnackbar("Mailbox updated successfully.", { variant: "success" });
-      await refreshMailbox();
+      enqueueSnackbar("Email Account updated successfully.", { variant: "success" });
+      await refreshemailAccount();
     },
     onError: (updateError: unknown) => {
       const message =
         updateError instanceof Error
           ? updateError.message
-          : "Failed to update mailbox. Please try again.";
+          : "Failed to update Email Account. Please try again.";
       enqueueSnackbar(message, { variant: "error" });
     },
   });
@@ -180,17 +180,17 @@ export default function MailboxDetailsPage() {
       if (!token) {
         throw new Error("Authentication token is missing");
       }
-      await refreshMailbox();
-      return validateEmailConfig(mailboxId, token);
+      await refreshemailAccount();
+      return validateEmailConfig(emailAccountId, token);
     },
     onSuccess: () => {
-      enqueueSnackbar("Mailbox validated successfully.", { variant: "success" });
+      enqueueSnackbar("Email Account validated successfully.", { variant: "success" });
     },
     onError: (validateError: unknown) => {
       const message =
         validateError instanceof Error
           ? validateError.message
-          : "Failed to validate mailbox. Please try again.";
+          : "Failed to validate Email Account. Please try again.";
       enqueueSnackbar(message, { variant: "error" });
     },
   });
@@ -201,18 +201,18 @@ export default function MailboxDetailsPage() {
         throw new Error("Authentication token is missing");
       }
 
-      return deleteEmailConfig(mailboxId, token);
+      return deleteEmailConfig(emailAccountId, token);
     },
     onSuccess: async () => {
-      enqueueSnackbar("Mailbox deleted successfully.", { variant: "success" });
+      enqueueSnackbar("Email Account deleted successfully.", { variant: "success" });
       await queryClient.invalidateQueries({ queryKey: ["emailConfigs"] });
-      router.push("/mailboxes");
+      router.push("/email-accounts");
     },
     onError: (deleteError: unknown) => {
       const message =
         deleteError instanceof Error
           ? deleteError.message
-          : "Failed to delete mailbox. Please try again.";
+          : "Failed to delete Email Account. Please try again.";
       enqueueSnackbar(message, { variant: "error" });
     },
   });
@@ -223,7 +223,7 @@ export default function MailboxDetailsPage() {
         throw new Error("Authentication token is missing");
       }
 
-      return testEmailConfig(mailboxId, payload, token);
+      return testEmailConfig(emailAccountId, payload, token);
     },
     onSuccess: () => {
       setToEmail("");
@@ -263,7 +263,7 @@ export default function MailboxDetailsPage() {
     const payload: Partial<CreateEmailConfigPayload> = {
       emailAddress: editForm.emailAddress.trim(),
       emailType: selectedEmailType,
-      organisationId: organisationId || mailbox?.organisationId || "",
+      organisationId: organisationId || emailAccount?.organisationId || "",
     };
 
     if (editForm.password.trim()) {
@@ -309,8 +309,8 @@ export default function MailboxDetailsPage() {
   };
 
   const openEditModal = () => {
-    if (mailbox) {
-      setEditForm(getEditFormFromMailbox(mailbox));
+    if (emailAccount) {
+      setEditForm(getEditFormFromEmailAccount(emailAccount));
     }
 
     setIsEditModalOpen(true);
@@ -320,7 +320,7 @@ export default function MailboxDetailsPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 text-sm font-medium text-slate-600 shadow-sm">
-          Loading mailbox...
+          Loading Email Account...
         </div>
       </div>
     );
@@ -354,23 +354,23 @@ export default function MailboxDetailsPage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <Link
-                  href="/mailboxes"
+                  href="/email-accounts"
                   className="text-sm font-semibold text-indigo-700 transition hover:text-indigo-900"
                 >
-                  Back to mailboxes
+                  Back to Email Accounts
                 </Link>
                 <h1 className="mt-3 break-all text-3xl font-semibold tracking-tight text-slate-950">
-                  {mailbox?.emailAddress || "Mailbox details"}
+                  {emailAccount?.emailAddress || "Email Account details details"}
                 </h1>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
-                  Review the mailbox configuration, validate it, send a test email, or update its
+                  Review the email account configuration, validate it, send a test email, or update its
                   settings.
-                </p>
+                </p>s
               </div>
 
-              {mailbox ? (
+              {emailAccount ? (
                 <span className="inline-flex w-fit items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
-                  {getEmailTypeLabel(mailbox.emailType)}
+                  {getEmailTypeLabel(emailAccount.emailType)}
                 </span>
               ) : null}
             </div>
@@ -378,11 +378,11 @@ export default function MailboxDetailsPage() {
 
           {isLoading ? (
             <section className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-700 shadow-sm sm:p-8">
-              Loading mailbox details...
+              Loading Email Account details...
             </section>
           ) : isError ? (
             <section className="rounded-2xl border border-rose-200 bg-rose-50 p-6 shadow-sm sm:p-8">
-              <p className="text-sm font-semibold text-rose-900">Failed to load mailbox</p>
+              <p className="text-sm font-semibold text-rose-900">Failed to load Email Account</p>
               <p className="mt-1 text-sm text-rose-800">
                 {(error as Error)?.message || "An unexpected error occurred."}
               </p>
@@ -394,7 +394,7 @@ export default function MailboxDetailsPage() {
                 Retry
               </button>
             </section>
-          ) : mailbox ? (
+          ) : emailAccount ? (
             <>
               <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -403,7 +403,7 @@ export default function MailboxDetailsPage() {
                       Email address
                     </p>
                     <p className="mt-2 break-all text-sm font-semibold text-slate-950">
-                      {mailbox.emailAddress || "Not available"}
+                      {emailAccount.emailAddress || "Not available"}
                     </p>
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -411,7 +411,7 @@ export default function MailboxDetailsPage() {
                       Email type
                     </p>
                     <p className="mt-2 text-sm font-semibold text-slate-950">
-                      {getEmailTypeLabel(mailbox.emailType)}
+                      {getEmailTypeLabel(emailAccount.emailType)}
                     </p>
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -419,7 +419,7 @@ export default function MailboxDetailsPage() {
                       Has been validated
                     </p>
                     <p className="mt-2 text-sm font-semibold text-slate-950">
-                      {mailbox.isValidated ? "True" : "False"}
+                      {emailAccount.isValidated ? "True" : "False"}
                     </p>
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -427,7 +427,7 @@ export default function MailboxDetailsPage() {
                       Created
                     </p>
                     <p className="mt-2 text-sm font-semibold text-slate-950">
-                      {getDateLabel(mailbox.createdAt)}
+                      {getDateLabel(emailAccount.createdAt)}
                     </p>
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -435,7 +435,7 @@ export default function MailboxDetailsPage() {
                       Updated
                     </p>
                     <p className="mt-2 text-sm font-semibold text-slate-950">
-                      {getDateLabel(mailbox.lastUpdatedAt)}
+                      {getDateLabel(emailAccount.lastUpdatedAt)}
                     </p>
                   </div>
                 </div>
@@ -450,7 +450,7 @@ export default function MailboxDetailsPage() {
                       disabled={isBusy}
                       className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm ring-1 ring-indigo-600 transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
                     >
-                      {mailbox.emailType == 1 || mailbox.emailType == 2 ? "Change Password" : "Change App Secret"}
+                      {emailAccount.emailType == 1 || emailAccount.emailType == 2 ? "Change Password" : "Change App Secret"}
                     </button>
                   </CanPerformAction>
                   <CanPerformAction permission={PermissionKeys.MailBoxesEdit}>
@@ -490,10 +490,10 @@ export default function MailboxDetailsPage() {
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
               <p className="text-sm font-semibold text-slate-900">Mailbox not found</p>
               <Link
-                href="/mailboxes"
+                href="/email-accounts"
                 className="mt-4 inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-indigo-600 transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
               >
-                Back to mailboxes
+                Back to Email Accounts
               </Link>
             </section>
           )}
@@ -511,13 +511,13 @@ export default function MailboxDetailsPage() {
               <section
                 role="dialog"
                 aria-modal="true"
-                aria-labelledby="edit-mailbox-title"
+                aria-labelledby="edit-emailAccount-title"
                 className="max-h-[calc(100vh-3rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl sm:p-8"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 id="edit-mailbox-title" className="text-xl font-semibold text-slate-900">
-                      Edit mailbox
+                    <h2 id="edit-emailAccount-title" className="text-xl font-semibold text-slate-900">
+                      Edit Email Account
                     </h2>
 
                   </div>
@@ -526,7 +526,7 @@ export default function MailboxDetailsPage() {
                     onClick={() => setIsEditModalOpen(false)}
                     disabled={changePasswordMutation.isPending || changeSecretMutation.isPending}
                     className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-xl leading-none text-slate-500 transition hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-                    aria-label="Close edit mailbox modal"
+                    aria-label="Close edit Email Account modal"
                   >
                     &times;
                   </button>
@@ -541,7 +541,7 @@ export default function MailboxDetailsPage() {
                       id="editEmailAddress"
                       type="email"
                       readOnly
-                      value={mailbox?.emailAddress}
+                      value={emailAccount?.emailAddress}
                       className="mt-1 block w-full rounded-xl border border-slate-300 bg-gray-200 px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-70"
                     />
                   </div>
@@ -553,7 +553,7 @@ export default function MailboxDetailsPage() {
                     <input
                       id="editEmailType"
                       readOnly
-                      value={EMAIL_TYPES.find((t) => t.value === mailbox?.emailType)?.label}
+                      value={EMAIL_TYPES.find((t) => t.value === emailAccount?.emailType)?.label}
                       className="mt-1 block w-full rounded-xl border border-slate-300 bg-gray-200 px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-70"
                     />
                   </div>
@@ -567,7 +567,7 @@ export default function MailboxDetailsPage() {
                         id="password"
                         type="password"
                         readOnly
-                        value={mailbox?.password || ""}
+                        value={emailAccount?.password || ""}
                         className="mt-1 block w-full rounded-xl border border-slate-300 bg-gray-200 px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-70"
                         disabled={changePasswordMutation.isPending || changeSecretMutation.isPending}
                       />
@@ -593,7 +593,7 @@ export default function MailboxDetailsPage() {
                         <input
                           id="editClientId"
                           type="text"
-                          value={mailbox?.clientId || ""}
+                          value={emailAccount?.clientId || ""}
                           readOnly
                           onChange={(event) =>
                             setEditForm((current) => ({ ...current, clientId: event.target.value }))
@@ -609,7 +609,7 @@ export default function MailboxDetailsPage() {
                         <input
                           id="editTenantId"
                           type="text"
-                          value={mailbox?.tenantId || ""}
+                          value={emailAccount?.tenantId || ""}
                           readOnly
                           onChange={(event) =>
                             setEditForm((current) => ({ ...current, tenantId: event.target.value }))
@@ -630,7 +630,7 @@ export default function MailboxDetailsPage() {
                           id="editClientSecret"
                           type="password"
                           readOnly
-                          value={mailbox?.clientSecret || ""}
+                          value={emailAccount?.clientSecret || ""}
                           className="mt-1 block w-full rounded-xl border border-slate-300 bg-gray-200 px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-70"
                           disabled={changePasswordMutation.isPending || changeSecretMutation.isPending}
                         />

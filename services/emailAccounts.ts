@@ -6,7 +6,7 @@ export enum EmailType {
   Office365 = 3,
 }
 
-export type EmailConfigDto = {
+export type EmailAccountDto = {
   id?: string;
   emailAddress?: string;
   emailType?: EmailType | number | string;
@@ -48,11 +48,11 @@ export type ChangeSecretDto ={
 export async function getEmailConfigs(
   organisationId: string,
   token: string | null
-): Promise<EmailConfigDto[]> {
+): Promise<EmailAccountDto[]> {
 
 
   const response = await fetch(
-    `${BASE_URL}/emailconfiguration/organisation/${organisationId}`,
+    `${BASE_URL}/emailaccount/organisation/${organisationId}`,
     {
       method: "GET",
       headers: {
@@ -69,7 +69,7 @@ export async function getEmailConfigs(
         .join(", ");
       throw new Error(message)
     } else {
-      throw new Error(errors.detail || "Failed to fetch email configurations.");
+      throw new Error(errors.detail || "Failed to fetch email accounts.");
     }
 
   }
@@ -79,8 +79,8 @@ export async function getEmailConfigs(
 export async function createEmailConfig(
   payload: CreateEmailConfigPayload,
   token: string
-): Promise<EmailConfigDto> {
-  const response = await fetch(`${BASE_URL}/emailconfiguration`, {
+): Promise<EmailAccountDto> {
+  const response = await fetch(`${BASE_URL}/emailaccount`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -97,7 +97,7 @@ export async function createEmailConfig(
         .join(", ");
       throw new Error(message)
     } else {
-      throw new Error(errors.detail || "Failed to fetch email configurations.");
+      throw new Error(errors.detail || "Failed to fetch email accounts.");
     }
 
   }
@@ -110,7 +110,7 @@ export async function testEmailConfig(
   payload: TestEmailConfigPayload,
   token: string
 ): Promise<void> {
-  const response = await fetch(`${BASE_URL}/emailconfiguration/${id}/test-email`, {
+  const response = await fetch(`${BASE_URL}/emailaccount/${id}/test-email`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -134,7 +134,7 @@ export async function testEmailConfig(
 }
 
 export async function validateEmailConfig(id: string, token: string): Promise<void> {
-  const response = await fetch(`${BASE_URL}/emailconfiguration/${id}/validate-email`, {
+  const response = await fetch(`${BASE_URL}/emailaccount/${id}/validate-email`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -151,17 +151,17 @@ export async function validateEmailConfig(id: string, token: string): Promise<vo
         .join(", ");
       throw new Error(message)
     } else {
-      throw new Error(errors.detail || "Failed to validate email configuration ");
+      throw new Error(errors.detail || "Failed to validate email account ");
     }
   }
   const data = await response.json();
   if (data == false) {
-    throw new Error("Email configuration is invalid. Please check the details and try again.");
+    throw new Error("Email account is invalid. Please check the details and try again.");
   }
   return data;
 }
 export async function deleteEmailConfig(id: string, token: string): Promise<void> {
-  const response = await fetch(`${BASE_URL}/emailconfiguration/${id}`, {
+  const response = await fetch(`${BASE_URL}/emailaccount/${id}`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
@@ -178,7 +178,7 @@ export async function deleteEmailConfig(id: string, token: string): Promise<void
         .join(", ");
       throw new Error(message)
     } else {
-      throw new Error(errors.detail || "Failed to delete email configuration");
+      throw new Error(errors.detail || "Failed to delete email account");
     }
 
   }
@@ -189,7 +189,7 @@ export async function updateEmailConfig(
   payload: Partial<CreateEmailConfigPayload>,
   token: string
 ): Promise<void> {
-  const response = await fetch(`${BASE_URL}/emailconfiguration/${id}`, {
+  const response = await fetch(`${BASE_URL}/emailaccount/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -206,13 +206,13 @@ export async function updateEmailConfig(
         .join(", ");
       throw new Error(message)
     } else {
-      throw new Error(errors.detail || "Failed to update email configuration");
+      throw new Error(errors.detail || "Failed to update email account");
     }
   }
 }
 
-export async function getEmailConfigById(id: string, token: string): Promise<EmailConfigDto> {
-  const response = await fetch(`${BASE_URL}/emailconfiguration/${id}`, {
+export async function getEmailConfigById(id: string, token: string): Promise<EmailAccountDto> {
+  const response = await fetch(`${BASE_URL}/emailaccount/${id}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -228,7 +228,7 @@ export async function getEmailConfigById(id: string, token: string): Promise<Ema
         .join(", ");
       throw new Error(message)
     } else {
-      throw new Error(errors.detail || "Failed to fetch email configuration");
+      throw new Error(errors.detail || "Failed to fetch email account");
     }
   }
   const data = await response.json();
@@ -241,7 +241,7 @@ export async function changeEmailConfigPassword(
   payload: Partial<ChangePasswordDto>,
   token: string
 ): Promise<void> {
-  const response = await fetch(`${BASE_URL}/emailconfiguration/change-password/${id}`, {
+  const response = await fetch(`${BASE_URL}/emailaccount/change-password/${id}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -258,7 +258,7 @@ export async function changeEmailConfigPassword(
         .join(", ");
       throw new Error(message)
     } else {
-      throw new Error(errors.detail || "Failed to update email configuration");
+      throw new Error(errors.detail || "Failed to update email account");
     }
   }
 }
@@ -268,7 +268,7 @@ export async function changeEmailConfigSecret(
   payload: Partial<ChangeSecretDto>,
   token: string
 ): Promise<void> {
-  const response = await fetch(`${BASE_URL}/emailconfiguration/change-client-secret/${id}`, {
+  const response = await fetch(`${BASE_URL}/emailaccount/change-client-secret/${id}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -285,7 +285,7 @@ export async function changeEmailConfigSecret(
         .join(", ");
       throw new Error(message)
     } else {
-      throw new Error(errors.detail || "Failed to update email configuration");
+      throw new Error(errors.detail || "Failed to update email account");
     }
   }
 }

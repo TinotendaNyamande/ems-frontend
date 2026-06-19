@@ -11,8 +11,8 @@ import {
   EmailType,
   getEmailConfigs,
   type CreateEmailConfigPayload,
-  type EmailConfigDto,
-} from "@/services/emailConfigs";
+  type EmailAccountDto,
+} from "@/services/emailAccounts";
 import { ProtectedPage } from "@/components/ProtectedPage";
 import { PermissionKeys } from "@/contants/PermissionKey";
 import { CanPerformAction } from "@/components/CanPerformAction";
@@ -32,7 +32,7 @@ const emptyForm = {
   tenantId: "",
 };
 
-function getEmailTypeLabel(value: EmailConfigDto["emailType"]) {
+function getEmailTypeLabel(value: EmailAccountDto["emailType"]) {
   if (typeof value === "string" && value.trim()) {
     const numericValue = Number(value);
     if (!Number.isNaN(numericValue)) {
@@ -88,14 +88,14 @@ export default function MailboxesPage() {
     onSuccess: async () => {
       setForm(emptyForm);
       setIsCreateModalOpen(false);
-      enqueueSnackbar("Mailbox created successfully.", { variant: "success" });
+      enqueueSnackbar("Email account created successfully.", { variant: "success" });
       await queryClient.invalidateQueries({ queryKey: mailboxesQueryKey });
     },
     onError: (createError: unknown) => {
       const message =
         createError instanceof Error
           ? createError.message
-          : "Failed to create mailbox. Please try again.";
+          : "Failed to create email account. Please try again.";
       enqueueSnackbar(message, { variant: "error" });
     },
   });
@@ -117,14 +117,14 @@ export default function MailboxesPage() {
     event.preventDefault();
 
     if (!organisationId) {
-      enqueueSnackbar("Create or join an organisation before adding mailboxes.", {
+      enqueueSnackbar("Create or join an organisation before adding emails accounts.", {
         variant: "warning",
       });
       return;
     }
 
     if (isGmail && !form.password.trim()) {
-      enqueueSnackbar("Enter the mailbox password or app password.", { variant: "warning" });
+      enqueueSnackbar("Enter the email account password.", { variant: "warning" });
       return;
     }
 
@@ -153,7 +153,7 @@ export default function MailboxesPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 text-sm font-medium text-slate-600 shadow-sm">
-          Loading mailboxes...
+          Loading Email accounts...
         </div>
       </div>
     );
@@ -202,9 +202,9 @@ export default function MailboxesPage() {
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-900">Connected mailboxes</h2>
+                  <h2 className="text-xl font-semibold text-slate-900">Connected Email Accounts</h2>
                   <p className="mt-1 text-sm text-slate-600">
-                    Mailboxes configured for sending and receiving organisation email.
+                   Email accounts configured for sending and receiving organisation email.
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -217,7 +217,7 @@ export default function MailboxesPage() {
                       onClick={() => setIsCreateModalOpen(true)}
                       className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-indigo-600 transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                     >
-                      Create mailbox
+                      Create Email Account
                     </button>
                   </CanPerformAction>
                 </div>
@@ -225,11 +225,11 @@ export default function MailboxesPage() {
 
               {isLoading ? (
                 <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700">
-                  Loading connected mailboxes...
+                  Loading connected email accounts...
                 </div>
               ) : isError ? (
                 <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-5">
-                  <p className="text-sm font-semibold text-rose-900">Failed to load mailboxes</p>
+                  <p className="text-sm font-semibold text-rose-900">Failed to load email accounts</p>
                   <p className="mt-1 text-sm text-rose-800">
                     {(error as Error)?.message || "An unexpected error occurred."}
                   </p>
@@ -243,9 +243,9 @@ export default function MailboxesPage() {
                 </div>
               ) : !mailboxes?.length ? (
                 <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
-                  <p className="text-sm font-semibold text-slate-900">No mailboxes connected</p>
+                  <p className="text-sm font-semibold text-slate-900">No email accounts connected</p>
                   <p className="mt-1 text-sm text-slate-600">
-                    Add your first mailbox to start sending and receiving organisation email.
+                    Add your first email account to start sending and receiving organisation email.
                   </p>
                   <CanPerformAction permission={PermissionKeys.MailBoxesCreate}>
                     <button
@@ -253,7 +253,7 @@ export default function MailboxesPage() {
                       onClick={() => setIsCreateModalOpen(true)}
                       className="mt-4 inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-indigo-600 transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                     >
-                      Create mailbox
+                      Create Email Account
                     </button>
                   </CanPerformAction>
                 </div>
@@ -264,7 +264,7 @@ export default function MailboxesPage() {
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="min-w-0">
                           <p className="break-all text-sm font-semibold text-slate-900">
-                            {mailbox.emailAddress || "Mailbox address unavailable"}
+                            {mailbox.emailAddress || "Email account address unavailable"}
                           </p>
                           <p className="mt-1 text-xs font-medium uppercase tracking-wide text-slate-500">
                             Created {getCreatedLabel(mailbox.createdAt)}
@@ -276,7 +276,7 @@ export default function MailboxesPage() {
                         {mailbox.id ? (
                           <CanPerformAction permission={PermissionKeys.MailBoxesEdit}>
                             <Link
-                              href={`/mailboxes/${mailbox.id}`}
+                              href={`/email-accounts/${mailbox.id}`}
                               className="inline-flex items-center justify-center rounded-xl bg-white px-3 py-2 text-xs font-semibold text-indigo-700 shadow-sm ring-1 ring-indigo-100 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                             >
                               View details
@@ -310,7 +310,7 @@ export default function MailboxesPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h2 id="create-mailbox-title" className="text-xl font-semibold text-slate-900">
-                      Create mailbox
+                      Create email account
                     </h2>
                   </div>
                   <button
@@ -459,7 +459,7 @@ export default function MailboxesPage() {
                         disabled={createMailboxMutation.isPending || !token}
                         className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm ring-1 ring-indigo-600 transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
                       >
-                        {createMailboxMutation.isPending ? "Creating..." : "Create mailbox"}
+                        {createMailboxMutation.isPending ? "Creating..." : "Create Email Account"}
                       </button>
                     </CanPerformAction>
 
