@@ -45,6 +45,7 @@ export default function Navbar() {
       { href: "/requests", label: "Requests", auth: "in", company: "has", permission: PermissionKeys.JoinRequestsView },
       { href: "/email-accounts", label: "Email Accounts", auth: "in", company: "has", permission: PermissionKeys.MailBoxesView },
       { href: "/email-settings/email-categories", label: "Email Categories", auth: "in", company: "has", permission: PermissionKeys.MailBoxesView },
+      { href: "/email-settings/email-category-matrix", label: "Category Matrix", auth: "in", company: "has", permission: PermissionKeys.MailBoxesView },
       { href: "/create-organisation", label: "Create Org", auth: "in", company: "none", permission: UiPermissionKeys.Allow },
       { href: "/join-organisation", label: "Join Org", auth: "in", company: "none", permission: UiPermissionKeys.Allow },
       { href: "/my-join-requests", label: "My Requests", auth: "in", company: "none", permission: UiPermissionKeys.Allow },
