@@ -39,6 +39,7 @@ export default function Navbar() {
   const navItems: NavItem[] = useMemo(
     () => [
       { href: "/", label: "Dashboard", auth: "any", permission: UiPermissionKeys.Allow },
+      { href: "/tasks", label: "Tasks", auth: "in", company: "has", permission: PermissionKeys.TasksView },
       { href: "/users", label: "Users", auth: "in", company: "has", permission: PermissionKeys.UsersView },
       { href: "/roles", label: "Roles", auth: "in", company: "has", permission: PermissionKeys.PermissionsView },
       { href: "/manage", label: "Manage Org", auth: "in", company: "has", permission: PermissionKeys.OrganisationEdit },
