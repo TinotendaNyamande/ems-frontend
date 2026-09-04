@@ -1,4 +1,3 @@
-import { PermissionKey } from "@/contants/PermissionKey";
 import { useAuth } from "@/context/AuthContext";
 import { canAccessResource } from "@/services/roles";
 
@@ -7,12 +6,12 @@ export function CanPerformAction({
     children,
     fallback = null,
 }: {
-    permission: PermissionKey;
+    permission: string;
     children: React.ReactNode;
     fallback?: React.ReactNode;
 }) {
     const { user } = useAuth();
-    const hasPermission = canAccessResource(user?.permissions, permission);
+    const hasPermission = canAccessResource(user?.role, permission);
     if (!hasPermission) {
         return <>{fallback}</>;
     }

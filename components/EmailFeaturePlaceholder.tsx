@@ -26,23 +26,23 @@ export function EmailFeaturePlaceholder({
         <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
           {!isAuthReady
             ? "Checking your session..."
-            : user?.organisationId
+            : user
               ? "This area is ready for mailbox and contact workflows when the backend endpoints are connected."
-              : "Create or join an organisation before using this workspace area."}
+              : "Sign in to continue into the workspace."}
         </div>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <Link
             href="/"
             className="inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm ring-1 ring-indigo-600 transition hover:bg-indigo-700 sm:w-auto"
-          >
-            Back to dashboard
-          </Link>
+            >
+              Back to dashboard
+            </Link>
           <Link
-            href="/organisation"
+            href="/admin"
             className="inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 sm:w-auto"
           >
-            Organisation
+            Admin dashboard
           </Link>
         </div>
       </section>

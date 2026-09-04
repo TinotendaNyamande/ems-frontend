@@ -5,20 +5,18 @@ import { FormEvent, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSnackbar } from "notistack";
-import { NoOrganisation } from "@/components/NoOrganisationDashboard";
 import { useAuth } from "@/context/AuthContext";
 import {
-  changeEmailConfigPassword,
-  changeEmailConfigSecret,
+  changeEmailAccountClientSecret,
+  changeEmailAccountPassword,
   ChangePasswordDto,
   ChangeSecretDto,
-  deleteEmailConfig,
+  CreateEmailAccountPayload,
+  deleteEmailAccount,
   EmailType,
-  getEmailConfigById,
-  testEmailConfig,
-  updateEmailConfig,
-  validateEmailConfig,
-  type CreateEmailConfigPayload,
+  getEmailAccountById,
+  testEmailAccount,
+  validateEmailAccount,
   type EmailAccountDto,
 } from "@/services/emailAccounts";
 import { ProtectedPage } from "@/components/ProtectedPage";
@@ -90,7 +88,6 @@ export default function EmailAccountDetailsPage() {
   const queryClient = useQueryClient();
   const confirm = useConfirm();
   const emailAccountId = params.id;
-  const organisationId = user?.organisationId ?? "";
   const emailAccountQueryKey = useMemo(
     () => ["emailAccount", emailAccountId, token],
     [emailAccountId, token]
@@ -111,7 +108,7 @@ export default function EmailAccountDetailsPage() {
   } = useQuery({
     queryKey: emailAccountQueryKey,
     enabled: isAuthReady && Boolean(emailAccountId && token),
-    queryFn: () => getEmailConfigById(emailAccountId, token as string),
+    queryFn: () => getEmailAccountById(emailAccountId, token as string),
   });
 
   const refreshemailAccount = async () => {
@@ -132,7 +129,7 @@ export default function EmailAccountDetailsPage() {
         emailId: emailAccountId
       }
 
-      return changeEmailConfigPassword(emailAccountId, changePasswordPayload, token);
+      return changeEmailAccountPassword(emailAccountId, changePasswordPayload, token);
     },
     onSuccess: async () => {
       setIsEditModalOpen(false);
@@ -159,7 +156,7 @@ export default function EmailAccountDetailsPage() {
         emailId: emailAccountId
       }
 
-      return changeEmailConfigSecret(emailAccountId, changeSecretPayload, token);
+      return changeEmailAccountClientSecret(emailAccountId, changeSecretPayload, token);
     },
     onSuccess: async () => {
       setIsEditModalOpen(false);
@@ -181,7 +178,7 @@ export default function EmailAccountDetailsPage() {
         throw new Error("Authentication token is missing");
       }
       await refreshemailAccount();
-      return validateEmailConfig(emailAccountId, token);
+      return validateEmailAccount(emailAccountId, token);
     },
     onSuccess: () => {
       enqueueSnackbar("Email Account validated successfully.", { variant: "success" });
@@ -201,11 +198,11 @@ export default function EmailAccountDetailsPage() {
         throw new Error("Authentication token is missing");
       }
 
-      return deleteEmailConfig(emailAccountId, token);
+      return deleteEmailAccount(emailAccountId, token);
     },
     onSuccess: async () => {
       enqueueSnackbar("Email Account deleted successfully.", { variant: "success" });
-      await queryClient.invalidateQueries({ queryKey: ["emailConfigs"] });
+      await queryClient.invalidateQueries({ queryKey: ["emailAccounts"] });
       router.push("/email-accounts");
     },
     onError: (deleteError: unknown) => {
@@ -223,7 +220,7 @@ export default function EmailAccountDetailsPage() {
         throw new Error("Authentication token is missing");
       }
 
-      return testEmailConfig(emailAccountId, payload, token);
+      return testEmailAccount(emailAccountId, payload, token);
     },
     onSuccess: () => {
       setToEmail("");
@@ -260,10 +257,9 @@ export default function EmailAccountDetailsPage() {
       return;
     }
 
-    const payload: Partial<CreateEmailConfigPayload> = {
+    const payload: Partial<CreateEmailAccountPayload> = {
       emailAddress: editForm.emailAddress.trim(),
-      emailType: selectedEmailType,
-      organisationId: organisationId || emailAccount?.organisationId || "",
+      emailType: selectedEmailType
     };
 
     if (editForm.password.trim()) {
@@ -336,15 +332,6 @@ export default function EmailAccountDetailsPage() {
     );
   }
 
-  if (!organisationId) {
-    return (
-      <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-6xl">
-          <NoOrganisation />
-        </div>
-      </main>
-    );
-  }
 
   return (
     <ProtectedPage permission={PermissionKeys.MailBoxesEdit}>

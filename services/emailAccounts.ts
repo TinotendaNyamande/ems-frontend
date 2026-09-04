@@ -14,23 +14,21 @@ export type EmailAccountDto = {
   clientId?: string | null;
   clientSecret?: string | null;
   tenantId?: string | null;
-  organisationId?: string;
   createdAt?: string;
   lastUpdatedAt?: string;
   isValidated?: boolean;
 };
 
-export type CreateEmailConfigPayload = {
+export type CreateEmailAccountPayload = {
   emailAddress: string;
   emailType: EmailType;
   password?: string | null;
   clientId?: string | null;
   clientSecret?: string | null;
   tenantId?: string | null;
-  organisationId: string;
 };
 
-export type TestEmailConfigPayload = {
+export type TestEmailAccountPayload = {
   toEmail: string;
 };
 export type ChangePasswordDto ={
@@ -45,14 +43,13 @@ export type ChangeSecretDto ={
   emailId: string;
 }
 
-export async function getEmailConfigs(
-  organisationId: string,
+export async function getEmailAccounts( 
   token: string | null
 ): Promise<EmailAccountDto[]> {
 
 
   const response = await fetch(
-    `${BASE_URL}/emailaccount/organisation/${organisationId}`,
+    `${BASE_URL}/emailaccount`,
     {
       method: "GET",
       headers: {
@@ -76,8 +73,8 @@ export async function getEmailConfigs(
   return await response.json();
 }
 
-export async function createEmailConfig(
-  payload: CreateEmailConfigPayload,
+export async function createEmailAccount(
+  payload: CreateEmailAccountPayload,
   token: string
 ): Promise<EmailAccountDto> {
   const response = await fetch(`${BASE_URL}/emailaccount`, {
@@ -105,9 +102,9 @@ export async function createEmailConfig(
   return data;
 }
 
-export async function testEmailConfig(
+export async function testEmailAccount(
   id: string,
-  payload: TestEmailConfigPayload,
+  payload: TestEmailAccountPayload,
   token: string
 ): Promise<void> {
   const response = await fetch(`${BASE_URL}/emailaccount/${id}/test-email`, {
@@ -133,7 +130,7 @@ export async function testEmailConfig(
   }
 }
 
-export async function validateEmailConfig(id: string, token: string): Promise<void> {
+export async function validateEmailAccount(id: string, token: string): Promise<void> {
   const response = await fetch(`${BASE_URL}/emailaccount/${id}/validate-email`, {
     method: "GET",
     headers: {
@@ -160,7 +157,7 @@ export async function validateEmailConfig(id: string, token: string): Promise<vo
   }
   return data;
 }
-export async function deleteEmailConfig(id: string, token: string): Promise<void> {
+export async function deleteEmailAccount(id: string, token: string): Promise<void> {
   const response = await fetch(`${BASE_URL}/emailaccount/${id}`, {
     method: "DELETE",
     headers: {
@@ -184,9 +181,9 @@ export async function deleteEmailConfig(id: string, token: string): Promise<void
   }
 }
 
-export async function updateEmailConfig(
+export async function updateEmailAccount(
   id: string,
-  payload: Partial<CreateEmailConfigPayload>,
+  payload: Partial<CreateEmailAccountPayload>,
   token: string
 ): Promise<void> {
   const response = await fetch(`${BASE_URL}/emailaccount/${id}`, {
@@ -211,7 +208,7 @@ export async function updateEmailConfig(
   }
 }
 
-export async function getEmailConfigById(id: string, token: string): Promise<EmailAccountDto> {
+export async function getEmailAccountById(id: string, token: string): Promise<EmailAccountDto> {
   const response = await fetch(`${BASE_URL}/emailaccount/${id}`, {
     method: "GET",
     headers: {
@@ -236,7 +233,7 @@ export async function getEmailConfigById(id: string, token: string): Promise<Ema
 }
 
 
-export async function changeEmailConfigPassword(
+export async function changeEmailAccountPassword(
   id: string,
   payload: Partial<ChangePasswordDto>,
   token: string
@@ -263,7 +260,7 @@ export async function changeEmailConfigPassword(
   }
 }
 
-export async function changeEmailConfigSecret(
+export async function changeEmailAccountClientSecret(
   id: string,
   payload: Partial<ChangeSecretDto>,
   token: string

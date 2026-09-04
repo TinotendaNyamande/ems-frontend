@@ -15,8 +15,9 @@ export default function NotLoggedInDashboard() {
               Keep every shared inbox calm, owned, and moving.
             </h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600 sm:text-base">
-              Bring team email, contacts, follow-ups, and ownership into one workspace. Create an
-              organisation, invite teammates, and manage customer conversations without losing context.
+              Bring team email, contacts, follow-ups, and ownership into one workspace. Set up
+              your workspace, invite teammates, and manage customer conversations without losing
+              context.
             </p>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
@@ -50,7 +51,7 @@ export default function NotLoggedInDashboard() {
               <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <p className="text-sm font-semibold text-slate-900">Contact context</p>
                 <p className="mt-1 text-sm text-slate-600">
-                  Keep contacts, organisations, and history together.
+                  Keep contacts and history together.
                 </p>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -107,9 +108,9 @@ export default function NotLoggedInDashboard() {
 
         <div className="mt-10 border-t border-slate-200 pt-6">
           <p className="text-xs text-slate-500">
-            By continuing, you agree to your organisation&apos;s policies. Need help?{" "}
+            By continuing, you agree to the workspace policies. Need help?{" "}
             <Link href="/login" className="font-semibold text-indigo-700 hover:text-indigo-800">
-              Contact your admin
+              Contact support
             </Link>
             .
           </p>

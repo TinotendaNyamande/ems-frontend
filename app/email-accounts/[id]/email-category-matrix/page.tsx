@@ -5,7 +5,6 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSnackbar } from "notistack";
 import { useConfirm } from "@/context/useConfirm";
-import { NoOrganisation } from "@/components/NoOrganisationDashboard";
 import { ProtectedPage } from "@/components/ProtectedPage";
 import { CanPerformAction } from "@/components/CanPerformAction";
 import { useAuth } from "@/context/AuthContext";
@@ -17,7 +16,8 @@ import {
   GetByOrganisation,
   type EmailCategoryMatrixDto,
 } from "@/services/emailcategorymatrix";
-import { GetEmailCategoryByOrganisation, type EmailCategoryDto } from "@/services/emailCategories";
+import { GetEmailCategoriesByEmailAccount, type EmailCategoryDto } from "@/services/emailCategories";
+import { useParams } from "next/dist/client/components/navigation";
 
 function getUserDisplayName(user?: User) {
   if (!user) return "Unknown user";
@@ -43,21 +43,21 @@ export default function EmailCategoryMatrixPage() {
   const { enqueueSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
   const confirm = useConfirm();
-  const organisationId = user?.organisationId ?? "";
   const [selectedUserId, setSelectedUserId] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const params = useParams<{ id: string }>();
 
   const matrixQueryKey = useMemo(
-    () => ["emailCategoryMatrix", organisationId, token],
-    [organisationId, token]
+    () => ["emailCategoryMatrix", params.id, token],
+    [params.id, token]
   );
   const usersQueryKey = useMemo(
-    () => ["organisationUsers", organisationId, token],
-    [organisationId, token]
+    () => ["users", params.id, token],
+    [params.id, token]
   );
   const categoriesQueryKey = useMemo(
-    () => ["emailCategories", organisationId, token],
-    [organisationId, token]
+    () => ["emailCategories", params.id, token],
+    [params.id, token]
   );
 
   const {
@@ -68,8 +68,8 @@ export default function EmailCategoryMatrixPage() {
     refetch: refetchMatrices,
   } = useQuery({
     queryKey: matrixQueryKey,
-    enabled: isAuthReady && Boolean(organisationId && token),
-    queryFn: () => GetByOrganisation(organisationId, token!),
+    enabled: isAuthReady && Boolean(params.id && token),
+    queryFn: () => GetByOrganisation(params.id, token!),
   });
 
   const {
@@ -80,8 +80,8 @@ export default function EmailCategoryMatrixPage() {
     refetch: refetchUsers,
   } = useQuery({
     queryKey: usersQueryKey,
-    enabled: isAuthReady && Boolean(organisationId && token),
-    queryFn: () => getAllUsers(token!, organisationId),
+    enabled: isAuthReady && Boolean(params.id && token),
+    queryFn: () => getAllUsers(token!, params.id),
   });
 
   const {
@@ -92,8 +92,8 @@ export default function EmailCategoryMatrixPage() {
     refetch: refetchCategories,
   } = useQuery({
     queryKey: categoriesQueryKey,
-    enabled: isAuthReady && Boolean(organisationId && token),
-    queryFn: () => GetEmailCategoryByOrganisation(organisationId, token!),
+    enabled: isAuthReady && Boolean(params.id && token),
+    queryFn: () => GetEmailCategoriesByEmailAccount(params.id, token!),
   });
 
   useEffect(() => {
@@ -203,16 +203,6 @@ export default function EmailCategoryMatrixPage() {
           Not logged in
         </div>
       </div>
-    );
-  }
-
-  if (!organisationId) {
-    return (
-      <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-6xl">
-          <NoOrganisation />
-        </div>
-      </main>
     );
   }
 

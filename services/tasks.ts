@@ -213,3 +213,27 @@ export const ReOpenTask = async (taskId: string) => {
     }
 
 };
+
+export const UserTasksSummary = async (userId: string|null|undefined) => {
+    const response = await fetch(`${BASE_URL}/emailtasks/summary/${userId}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+    if (!response.ok) {
+        const errors = await response.json();
+        if (errors.errors) {
+            const message = Object.values(errors.errors)
+                .flat()
+                .join(", ");
+            throw new Error(message)
+        } else {
+            throw new Error(errors.detail || "Failed to reopen task");
+        }
+    }
+    let data = await response.json();
+    return data;
+
+};
+

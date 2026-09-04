@@ -5,11 +5,7 @@ export type AuthResponse = {
   email: string;
   userId: string;
   refreshToken: string;
-  role:string;
-  permissions?: {
-    permissionKey: string;
-    isAllowed: boolean;
-  }[];
+  role?: string | null;
 };
 
 

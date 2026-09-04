@@ -14,8 +14,6 @@ type User = {
   email: string;
   role: string;
   firstName: string;
-  organisationId: string;
-  permissions: UserPermission[];
 };
 
 type DecodedJwt = JwtPayload & {
@@ -24,7 +22,6 @@ type DecodedJwt = JwtPayload & {
   role?: string;
   FirstName?: string;
   [key: string]: unknown;
-   OrganisationId:string;
 };
 
 type AuthContextType = {
@@ -142,8 +139,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email: response.email,
       role: response.role ?? role ?? "",
       firstName: decodedToken.FirstName ?? "",
-      organisationId: decodedToken.OrganisationId ?? "",
-      permissions: response.permissions ?? [],
     });
     setTokenStorage(jwt,response.refreshToken);
     setIsAuthReady(true);

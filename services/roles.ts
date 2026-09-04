@@ -56,13 +56,6 @@ export const editPermissionForRole = async (token: string, permissionId: string,
         }
     }
 };
-export const canAccessResource = (permissions: UserPermission[] | undefined, requiredPermissionKey: PermissionKey): boolean => {
-    if (!permissions) {
-        return false;
-    }
-    if (requiredPermissionKey === "allow") {
-        return true;
-    }
-    const permission = permissions.find(p => p.permissionKey === requiredPermissionKey);
-    return permission ? permission.isAllowed : false;
+export const canAccessResource = (permissions: string | undefined, requiredPermissionKey: string): boolean => {
+    return true;
 }

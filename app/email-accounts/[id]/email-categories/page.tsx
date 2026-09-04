@@ -5,15 +5,15 @@ import { FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSnackbar } from "notistack";
 import { CanPerformAction } from "@/components/CanPerformAction";
-import { NoOrganisation } from "@/components/NoOrganisationDashboard";
 import { ProtectedPage } from "@/components/ProtectedPage";
 import { useAuth } from "@/context/AuthContext";
 import { PermissionKeys } from "@/contants/PermissionKey";
 import {
   CreateEmailCategory,
-  GetEmailCategoryByOrganisation,
+  GetEmailCategories,
   type EmailCategoryDto,
 } from "@/services/emailCategories";
+import { useParams } from "next/navigation";
 
 function getCategoryInitials(value: string) {
   const trimmed = value.trim();
@@ -34,13 +34,9 @@ export default function EmailCategoriesPage() {
   const { user, isAuthReady, token } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
-  const organisationId = user?.organisationId ?? "";
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [categoryName, setCategoryName] = useState("");
-  const emailCategoriesQueryKey = useMemo(
-    () => ["emailCategories", organisationId, token],
-    [organisationId, token]
-  );
+const params = useParams<{ id: string }>(); 
 
   const {
     data: categories,
@@ -49,9 +45,9 @@ export default function EmailCategoriesPage() {
     error,
     refetch,
   } = useQuery({
-    queryKey: emailCategoriesQueryKey,
-    enabled: isAuthReady && Boolean(organisationId && token),
-    queryFn: () => GetEmailCategoryByOrganisation(organisationId, token!),
+    queryKey: ["email-categories",params.id],
+    enabled: isAuthReady && Boolean( token),
+    queryFn: () => GetEmailCategories(params.id, token!),
   });
 
   const sortedCategories = useMemo(
@@ -65,7 +61,7 @@ export default function EmailCategoriesPage() {
   );
 
   const createCategoryMutation = useMutation({
-    mutationFn: (payload: { organisationId: string; categoryName: string }) => {
+    mutationFn: (payload: { emailAccountId: string; categoryName: string }) => {
       if (!token) {
         throw new Error("Authentication token is missing");
       }
@@ -76,7 +72,7 @@ export default function EmailCategoriesPage() {
       setCategoryName("");
       setIsCreateModalOpen(false);
       enqueueSnackbar("Email category created successfully.", { variant: "success" });
-      await queryClient.invalidateQueries({ queryKey: emailCategoriesQueryKey });
+      await queryClient.invalidateQueries({ queryKey: ["email-categories",params.id] });
     },
     onError: (createError: unknown) => {
       const message =
@@ -104,15 +100,9 @@ export default function EmailCategoriesPage() {
       return;
     }
 
-    if (!organisationId) {
-      enqueueSnackbar("Create or join an organisation before adding categories.", {
-        variant: "warning",
-      });
-      return;
-    }
 
     createCategoryMutation.mutate({
-      organisationId,
+      emailAccountId: params.id,
       categoryName: trimmedName,
     });
   };
@@ -137,15 +127,6 @@ export default function EmailCategoriesPage() {
     );
   }
 
-  if (!organisationId) {
-    return (
-      <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-6xl">
-          <NoOrganisation />
-        </div>
-      </main>
-    );
-  }
 
   return (
     <ProtectedPage permission={PermissionKeys.MailBoxesView}>

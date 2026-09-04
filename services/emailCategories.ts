@@ -1,12 +1,12 @@
 import { BASE_URL } from "./helper"
 
 export type CreateEmailCategoryDto = {
-    organisationId: string,
+    emailAccountId: string,
     categoryName: string
 }
 export type EmailCategoryDto = {
     id: string,
-    organisationId: string,
+    emailAccountId: string,
     categoryName: string
 }
 
@@ -59,8 +59,8 @@ export const GetEmailCategoryById = async (id: string, token: string): Promise<E
 }
 
 
-export const GetEmailCategoryByOrganisation = async (id: string, token: string): Promise<EmailCategoryDto[]> => {
-    const response = await fetch(`${BASE_URL}/emailcategories/by-organisation/${id}`, {
+export const GetEmailCategoriesByEmailAccount = async (emailAccountId: string, token: string): Promise<EmailCategoryDto[]> => {
+    const response = await fetch(`${BASE_URL}/emailcategories/by-email-account/${emailAccountId}`, {
         method: "GET",
         headers: {
             "Authorization": `Bearer ${token}`,

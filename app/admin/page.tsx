@@ -2,26 +2,16 @@
 
 import { useAuth } from "@/context/AuthContext";
 import NotLoggedInDashboard from "@/components/NotLoggedInDashboard";
-import { Dashboard } from "@/components/Dashboard";
-import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { UserTasksSummary } from "@/services/tasks";
+import { AdminDashboard } from "@/components/AdminDashboard";
 
-export default function DashboardPage() {
+export default function AdminDashboardPage() {
   const { user, isAuthReady } = useAuth();
-  useEffect(() => {
-    if (user) {
-      console.log("User", user);
-    }
-  }, [isAuthReady, user]);
-
-  const { data, error, isError, isLoading } = useQuery({ queryKey: ["summary", user?.id], queryFn: () => UserTasksSummary(user?.id) })
 
   if (!isAuthReady) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 text-sm font-medium text-slate-600 shadow-sm">
-          Loading your email workspace...
+          Loading admin workspace...
         </div>
       </div>
     );
@@ -38,11 +28,14 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-wide text-indigo-700">
-                User dashboard
+                Admin dashboard
               </p>
               <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-                Your tasks, at a glance
+                Management workspace
               </h1>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
+                Keep the admin surfaces together while the main dashboard stays focused on a user&apos;s tasks.
+              </p>
             </div>
 
             <div className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 sm:min-w-72">
@@ -52,26 +45,12 @@ export default function DashboardPage() {
               </div>
               <div className="flex items-center justify-between gap-4">
                 <span className="font-medium text-slate-500">Workspace</span>
-                <span className="font-semibold text-slate-900">Regular user</span>
+                <span className="font-semibold text-slate-900">Administration</span>
               </div>
             </div>
           </div>
         </section>
-        {isError && (
-          <div>
-            <p>{error.message}</p>
-          </div>
-        )}
-        {isLoading && (
-          <div>
-            <p>Loading</p>
-          </div>
-        )}
-        {!isLoading && !isError && (
-          <div>
-            <Dashboard data={data} />
-          </div>
-        )}
+        <AdminDashboard />
       </main>
     </div>
   );
