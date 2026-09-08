@@ -4,13 +4,10 @@ import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSnackbar } from "notistack";
-import { CanPerformAction } from "@/components/CanPerformAction";
-import { ProtectedPage } from "@/components/ProtectedPage";
 import { useAuth } from "@/context/AuthContext";
-import { PermissionKeys } from "@/contants/PermissionKey";
 import {
   CreateEmailCategory,
-  GetEmailCategories,
+  GetEmailCategoriesByEmailAccount,
   type EmailCategoryDto,
 } from "@/services/emailCategories";
 import { useParams } from "next/navigation";
@@ -36,7 +33,8 @@ export default function EmailCategoriesPage() {
   const queryClient = useQueryClient();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [categoryName, setCategoryName] = useState("");
-const params = useParams<{ id: string }>(); 
+  const [SLAHours, setSLAHours] = useState("");
+  const params = useParams<{ id: string }>();
 
   const {
     data: categories,
@@ -45,9 +43,9 @@ const params = useParams<{ id: string }>();
     error,
     refetch,
   } = useQuery({
-    queryKey: ["email-categories",params.id],
-    enabled: isAuthReady && Boolean( token),
-    queryFn: () => GetEmailCategories(params.id, token!),
+    queryKey: ["email-categories", params.id],
+    enabled: isAuthReady && Boolean(token),
+    queryFn: () => GetEmailCategoriesByEmailAccount(params.id, token!),
   });
 
   const sortedCategories = useMemo(
@@ -61,7 +59,7 @@ const params = useParams<{ id: string }>();
   );
 
   const createCategoryMutation = useMutation({
-    mutationFn: (payload: { emailAccountId: string; categoryName: string }) => {
+    mutationFn: (payload: { emailAccountId: string; categoryName: string; slaHours?: number }) => {
       if (!token) {
         throw new Error("Authentication token is missing");
       }
@@ -70,9 +68,10 @@ const params = useParams<{ id: string }>();
     },
     onSuccess: async () => {
       setCategoryName("");
+      setSLAHours("");
       setIsCreateModalOpen(false);
       enqueueSnackbar("Email category created successfully.", { variant: "success" });
-      await queryClient.invalidateQueries({ queryKey: ["email-categories",params.id] });
+      await queryClient.invalidateQueries({ queryKey: ["email-categories", params.id] });
     },
     onError: (createError: unknown) => {
       const message =
@@ -104,6 +103,7 @@ const params = useParams<{ id: string }>();
     createCategoryMutation.mutate({
       emailAccountId: params.id,
       categoryName: trimmedName,
+      slaHours: Number(SLAHours.trim()) || 0,
     });
   };
 
@@ -129,191 +129,177 @@ const params = useParams<{ id: string }>();
 
 
   return (
-    <ProtectedPage permission={PermissionKeys.MailBoxesView}>
-      <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-6xl flex-col gap-6">
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-wide text-indigo-700">
-                  Email settings
-                </p>
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-                  Email Categories
-                </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                  Organize incoming mail into reusable buckets, then open a category to rename or remove it.
-                </p>
-              </div>
-              <CanPerformAction permission={PermissionKeys.MailBoxesCreate}>
-                <button
-                  type="button"
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-indigo-600 transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-                >
-                  Create Category
-                </button>
-              </CanPerformAction>
+    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wide text-indigo-700">
+                Email settings
+              </p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+                Email Categories
+              </h1>
             </div>
-          </section>
-
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-slate-900">Organisation categories</h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  These categories are available to every email account in this organisation.
-                </p>
-              </div>
-              <span className="inline-flex w-fit items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-100">
-                {sortedCategories.length} total
-              </span>
-            </div>
-
-            {isLoading ? (
-              <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700">
-                Loading email categories...
-              </div>
-            ) : isError ? (
-              <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-5">
-                <p className="text-sm font-semibold text-rose-900">Failed to load email categories</p>
-                <p className="mt-1 text-sm text-rose-800">
-                  {(error as Error)?.message || "An unexpected error occurred."}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => refetch()}
-                  className="mt-4 inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
-                >
-                  Retry
-                </button>
-              </div>
-            ) : sortedCategories.length === 0 ? (
-              <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6">
-                <p className="text-sm font-semibold text-slate-900">No email categories yet</p>
-                <p className="mt-1 text-sm text-slate-600">
-                  Create your first category to start grouping emails by topic, team, or workflow.
-                </p>
-                <CanPerformAction permission={PermissionKeys.MailBoxesCreate}>
-                  <button
-                    type="button"
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="mt-4 inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-indigo-600 transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-                  >
-                    Create Category
-                  </button>
-                </CanPerformAction>
-              </div>
-            ) : (
-              <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {sortedCategories.map((category: EmailCategoryDto) => (
-                  <Link
-                    key={category.id}
-                    href={`/email-settings/email-categories/${category.id}`}
-                    className="group rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-indigo-50 text-sm font-semibold text-indigo-700 ring-1 ring-indigo-100">
-                        {getCategoryInitials(category.categoryName)}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-base font-semibold text-slate-900">
-                          {category.categoryName || "Untitled category"}
-                        </h3>
-                        <p className="mt-2 text-sm text-slate-600">
-                          Open to view, rename, or delete this category.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
-                      <span className="font-semibold text-slate-500">ID:</span>{" "}
-                      <span className="break-all">{getCategoryIdLabel(category.id)}</span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-
-        {isCreateModalOpen ? (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6 backdrop-blur-sm"
-            role="presentation"
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget) {
-                closeCreateModal();
-              }
-            }}
-          >
-            <section
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="create-category-title"
-              className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl sm:p-8"
+            <button
+              type="button"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-indigo-600 transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 id="create-category-title" className="text-xl font-semibold text-slate-900">
-                    Create email category
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Use a short, descriptive name so the category stays easy to scan.
-                  </p>
-                </div>
+              Create Category
+            </button>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900">Email Categories</h2>
+            </div>
+            <span className="inline-flex w-fit items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-100">
+              {sortedCategories.length} total
+            </span>
+          </div>
+          {isLoading ? (
+            <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700">
+              Loading email categories...
+            </div>
+          ) : isError ? (
+            <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-5">
+              <p className="text-sm font-semibold text-rose-900">Failed to load email categories</p>
+              <p className="mt-1 text-sm text-rose-800">
+                {(error as Error)?.message || "An unexpected error occurred."}
+              </p>
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className="mt-4 inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
+              >
+                Retry
+              </button>
+            </div>
+          ) : sortedCategories.length === 0 ? (
+            <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6">
+              <p className="text-sm font-semibold text-slate-900">No email categories yet</p>
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(true)}
+                className="mt-4 inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-indigo-600 transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+              >
+                Create Category
+              </button>
+            </div>
+          ) : (
+            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {sortedCategories.map((category: EmailCategoryDto) => (
+                <Link
+                  key={category.id}
+                  href={`/email-accounts/${params.id}/email-categories/${category.id}`}
+                  className="group rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-indigo-50 text-sm font-semibold text-indigo-700 ring-1 ring-indigo-100">
+                      {getCategoryInitials(category.categoryName)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-base font-semibold text-slate-900">
+                        {category.categoryName || "Untitled category"}
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+                    <span className="font-semibold text-slate-500">SLA Hours:</span>{" "}
+                    <span className="break-all">{category.slaHours}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+
+      {isCreateModalOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6 backdrop-blur-sm"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              closeCreateModal();
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-category-title"
+            className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl sm:p-8"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 id="create-category-title" className="text-xl font-semibold text-slate-900">
+                  Create email category
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={closeCreateModal}
+                disabled={createCategoryMutation.isPending}
+                className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-xl leading-none text-slate-500 transition hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+                aria-label="Close create category modal"
+              >
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateSubmit} className="mt-6 space-y-4">
+              <div>
+                <label htmlFor="categoryName" className="block text-sm font-medium text-slate-700">
+                  Category name
+                </label>
+                <input
+                  id="categoryName"
+                  type="text"
+                  required
+                  value={categoryName}
+                  onChange={(event) => setCategoryName(event.target.value)}
+                  className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-70"
+                  placeholder="Support"
+                  disabled={createCategoryMutation.isPending}
+                />
+                <input
+                  id="SLAHours"
+                  type="number"
+                  required
+                  value={SLAHours}
+                  onChange={(event) => setSLAHours(event.target.value)}
+                  className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-70"
+                  placeholder="SLA Hours"
+                  disabled={createCategoryMutation.isPending}
+                />
+              </div>
+
+              <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={closeCreateModal}
                   disabled={createCategoryMutation.isPending}
-                  className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-xl leading-none text-slate-500 transition hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-                  aria-label="Close create category modal"
+                  className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  &times;
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createCategoryMutation.isPending || !token}
+                  className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm ring-1 ring-indigo-600 transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {createCategoryMutation.isPending ? "Creating..." : "Create Category"}
                 </button>
               </div>
-
-              <form onSubmit={handleCreateSubmit} className="mt-6 space-y-4">
-                <div>
-                  <label htmlFor="categoryName" className="block text-sm font-medium text-slate-700">
-                    Category name
-                  </label>
-                  <input
-                    id="categoryName"
-                    type="text"
-                    required
-                    value={categoryName}
-                    onChange={(event) => setCategoryName(event.target.value)}
-                    className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-70"
-                    placeholder="Support"
-                    disabled={createCategoryMutation.isPending}
-                  />
-                </div>
-
-                <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
-                  <button
-                    type="button"
-                    onClick={closeCreateModal}
-                    disabled={createCategoryMutation.isPending}
-                    className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    Cancel
-                  </button>
-                  <CanPerformAction permission={PermissionKeys.MailBoxesCreate}>
-                    <button
-                      type="submit"
-                      disabled={createCategoryMutation.isPending || !token}
-                      className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm ring-1 ring-indigo-600 transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      {createCategoryMutation.isPending ? "Creating..." : "Create Category"}
-                    </button>
-                  </CanPerformAction>
-                </div>
-              </form>
-            </section>
-          </div>
-        ) : null}
-      </main>
-    </ProtectedPage>
+            </form>
+          </section>
+        </div>
+      ) : null}
+    </main>
   );
 }

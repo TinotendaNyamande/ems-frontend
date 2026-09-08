@@ -25,8 +25,9 @@ function formatDate(value?: string | null) {
 }
 
 export default function EmailCategoryMatrixDetailsPage() {
-  const params = useParams<{ id: string }>();
-  const matrixId = params.id;
+  const params = useParams<{ id: string; matrixId: string }>();
+  const accountId = params.id;
+  const matrixId = params.matrixId;
   const { user, isAuthReady, token } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
@@ -127,7 +128,7 @@ export default function EmailCategoryMatrixDetailsPage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <Link
-                  href="/email-settings/email-category-matrix"
+                  href={`/email-accounts/${accountId}/email-category-matrix`}
                   className="text-sm font-semibold text-indigo-700 transition hover:text-indigo-900"
                 >
                   Back to matrix
@@ -208,13 +209,13 @@ export default function EmailCategoryMatrixDetailsPage() {
               <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
                 <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                   <Link
-                    href={`/email-settings/email-category-matrix/user/${matrix.userid}`}
+                    href={`/email-accounts/${accountId}/email-category-matrix/user/${matrix.userid}`}
                     className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                   >
                     User view
                   </Link>
                   <Link
-                    href={`/email-settings/email-categories/${matrix.categoryId}`}
+                    href={`/email-accounts/${accountId}/email-categories/${matrix.categoryId}`}
                     className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                   >
                     Category details
@@ -239,7 +240,7 @@ export default function EmailCategoryMatrixDetailsPage() {
                 This matrix entry could not be found in the current organisation.
               </p>
               <Link
-                href="/email-settings/email-category-matrix"
+                href={`/email-accounts/${accountId}/email-category-matrix`}
                 className="mt-4 inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-indigo-600 transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
               >
                 Back to matrix

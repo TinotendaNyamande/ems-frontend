@@ -5,19 +5,16 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSnackbar } from "notistack";
 import { useConfirm } from "@/context/useConfirm";
-import { ProtectedPage } from "@/components/ProtectedPage";
-import { CanPerformAction } from "@/components/CanPerformAction";
 import { useAuth } from "@/context/AuthContext";
-import { PermissionKeys } from "@/contants/PermissionKey";
 import { getAllUsers, type User } from "@/services/users";
 import {
   CreateMatrix,
   DeleteMatrix,
-  GetByOrganisation,
+  GetByEmailAccount,
   type EmailCategoryMatrixDto,
 } from "@/services/emailcategorymatrix";
 import { GetEmailCategoriesByEmailAccount, type EmailCategoryDto } from "@/services/emailCategories";
-import { useParams } from "next/dist/client/components/navigation";
+import { useParams } from "next/navigation";
 
 function getUserDisplayName(user?: User) {
   if (!user) return "Unknown user";
@@ -69,7 +66,7 @@ export default function EmailCategoryMatrixPage() {
   } = useQuery({
     queryKey: matrixQueryKey,
     enabled: isAuthReady && Boolean(params.id && token),
-    queryFn: () => GetByOrganisation(params.id, token!),
+    queryFn: () => GetByEmailAccount(params.id, token!),
   });
 
   const {
@@ -81,7 +78,7 @@ export default function EmailCategoryMatrixPage() {
   } = useQuery({
     queryKey: usersQueryKey,
     enabled: isAuthReady && Boolean(params.id && token),
-    queryFn: () => getAllUsers(token!, params.id),
+    queryFn: () => getAllUsers(token!),
   });
 
   const {
@@ -209,7 +206,6 @@ export default function EmailCategoryMatrixPage() {
   const visibleMatrices = matrices ?? [];
 
   return (
-    <ProtectedPage permission={PermissionKeys.MailBoxesView}>
       <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-6xl flex-col gap-6">
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
@@ -221,14 +217,10 @@ export default function EmailCategoryMatrixPage() {
                 <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
                   Email category matrix
                 </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                  Assign email categories to users, review existing links, and remove assignments
-                  when a workflow changes.
-                </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Link
-                  href="/email-settings/email-categories"
+                  href={`/email-accounts/${params.id}/email-categories`}
                   className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-300 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                 >
                   Email categories
@@ -357,7 +349,6 @@ export default function EmailCategoryMatrixPage() {
                 </div>
 
                 <div className="flex items-end">
-                  <CanPerformAction permission={PermissionKeys.MailBoxesCreate}>
                     <button
                       type="submit"
                       disabled={createMutation.isPending || !token}
@@ -365,7 +356,6 @@ export default function EmailCategoryMatrixPage() {
                     >
                       {createMutation.isPending ? "Creating..." : "Create assignment"}
                     </button>
-                  </CanPerformAction>
                 </div>
               </form>
             )}
@@ -374,10 +364,7 @@ export default function EmailCategoryMatrixPage() {
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-slate-900">Organisation assignments</h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  Open an assignment to review it or jump to the user-specific view.
-                </p>
+                <h2 className="text-xl font-semibold text-slate-900">Email Account assignments</h2>
               </div>
               <span className="inline-flex w-fit items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-100">
                 {visibleMatrices.length} total
@@ -405,9 +392,6 @@ export default function EmailCategoryMatrixPage() {
             ) : visibleMatrices.length === 0 ? (
               <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6">
                 <p className="text-sm font-semibold text-slate-900">No assignments yet</p>
-                <p className="mt-1 text-sm text-slate-600">
-                  Create your first matrix entry to map an email category to a user.
-                </p>
               </div>
             ) : (
               <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200">
@@ -457,18 +441,17 @@ export default function EmailCategoryMatrixPage() {
 
                         <div className="flex flex-wrap gap-2">
                           <Link
-                            href={`/email-settings/email-category-matrix/${matrix.id}`}
+                            href={`/email-accounts/${params.id}/email-category-matrix/${matrix.id}`}
                             className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                           >
                             View
                           </Link>
                           <Link
-                            href={`/email-settings/email-category-matrix/user/${matrix.userid}`}
+                            href={`/email-accounts/${params.id}/email-category-matrix/user/${matrix.userid}`}
                             className="inline-flex items-center justify-center rounded-xl bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-sm ring-1 ring-slate-300 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                           >
                             User view
                           </Link>
-                          <CanPerformAction permission={PermissionKeys.MailBoxesDelete}>
                             <button
                               type="button"
                               onClick={() => handleDelete(matrix.id)}
@@ -477,7 +460,6 @@ export default function EmailCategoryMatrixPage() {
                             >
                               Delete
                             </button>
-                          </CanPerformAction>
                         </div>
                       </div>
                     </li>
@@ -488,6 +470,5 @@ export default function EmailCategoryMatrixPage() {
           </section>
         </div>
       </main>
-    </ProtectedPage>
   );
 }

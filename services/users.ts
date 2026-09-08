@@ -5,22 +5,17 @@ export type User = {
   email: string;
   firstName?: string | null;
   lastName?: string | null;
-  organisationId?: string | null;
-  Role?: string | null;
   role?: string | null;
-  roleId?: string | null;
-  organisationRoleId?: string | null;
 };
 export type CreateUserRequest = {
   email: string;
   firstName?: string;
   lastName?: string;
-  organisationId?: string;
   password?: string;
   role?: string;
 };
-export const getUserProfile = async (token: string,userId: string): Promise<User> => {
-  const response = await fetch(`${BASE_URL}/users/profile/${userId}`, {
+export const getUserById = async (token: string,userId: string): Promise<User> => {
+  const response = await fetch(`${BASE_URL}/users/${userId}`, {
     method: "GET",
     headers: {
       "Authorization": `Bearer ${token}`
@@ -32,8 +27,8 @@ export const getUserProfile = async (token: string,userId: string): Promise<User
   return response.json() as Promise<User>;
 };
 
-export const getAllUsers = async (token: string, organisationId?: string): Promise<User[]> => {
-  const response = await fetch(`${BASE_URL}/users/organisation/${organisationId}`, {
+export const getAllUsers = async (token: string): Promise<User[]> => {
+  const response = await fetch(`${BASE_URL}/users`, {
     method: "GET",
     headers: {
       "Authorization": `Bearer ${token}`

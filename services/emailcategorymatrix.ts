@@ -106,8 +106,8 @@ export const GetByUser= async (userId:string, token: string): Promise<EmailCateg
     const data = await response.json();
     return data;
 }
-export const GetByOrganisation= async (organisationId:string, token: string): Promise<EmailCategoryMatrixDto[]> => {
-    const response = await fetch(`${BASE_URL}/EmailCategoryUserMatrix/by-organisation/${organisationId}`, {
+export const GetByEmailAccount= async (emailAccountId:string, token: string): Promise<EmailCategoryMatrixDto[]> => {
+    const response = await fetch(`${BASE_URL}/EmailCategoryUserMatrix/by-account/${emailAccountId}`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",

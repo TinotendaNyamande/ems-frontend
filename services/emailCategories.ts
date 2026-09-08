@@ -7,7 +7,8 @@ export type CreateEmailCategoryDto = {
 export type EmailCategoryDto = {
     id: string,
     emailAccountId: string,
-    categoryName: string
+    categoryName: string,
+    slaHours: number
 }
 
 export const CreateEmailCategory = async (emailCategory: CreateEmailCategoryDto, token: string) => {
@@ -114,14 +115,14 @@ export const DeleteEmailCategory = async (id: string, token: string, newCategory
     }
 }
 
-export const RenameEmailCategory = async (newName: string, id: string, token: string) => {
+export const EditEmailCategory = async ( id: string,newName: string,slaHours: number, token: string) => {
     const response = await fetch(`${BASE_URL}/emailcategories/${id}`, {
         method: "PATCH",
         headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({ newName })
+        body: JSON.stringify({ newName, slaHours })
     })
     if (!response.ok) {
         const errors = await response.json();

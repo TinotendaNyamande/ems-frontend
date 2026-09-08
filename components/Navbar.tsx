@@ -23,26 +23,17 @@ function getInitials(name: string) {
   return (first + (second ?? "")).toUpperCase();
 }
 
-function isActivePath(pathname: string, searchParams: URLSearchParams, href: string) {
-  const [route, query] = href.split("?");
-  if (route === "/") return pathname === "/";
-  if (route === "/tasks") {
-    if (pathname !== "/tasks") return false;
-    if (!query) return true;
-    return searchParams.toString() === query;
-  }
-  return pathname === route || pathname.startsWith(`${route}/`);
-}
+
 
 function hasAdminAccess(role?: string | null) {
   const normalized = role?.trim().toLowerCase();
   return normalized === "admin" || normalized === "supervisor";
 }
 
-function getNavItems(pathname: string, role?: string | null): NavItem[] {
+function getNavItems(role?: string | null): NavItem[] {
   const adminAccess = hasAdminAccess(role);
 
-  if (adminAccess && pathname.startsWith("/admin")) {
+  if (adminAccess) {
     return [
       {
         href: "/",
@@ -52,8 +43,8 @@ function getNavItems(pathname: string, role?: string | null): NavItem[] {
         ),
       },
       {
-        href: "/admin",
-        label: "Admin",
+        href: "/email-accounts",
+        label: "Email accounts",
         icon: (
           <path d="M12 3 4 7v5c0 5 3.5 8 8 9 4.5-1 8-4 8-9V7l-8-4Z" />
         ),
@@ -70,54 +61,10 @@ function getNavItems(pathname: string, role?: string | null): NavItem[] {
           </>
         ),
       },
+
       {
-        href: "/users/manage",
-        label: "Create users",
-        icon: (
-          <>
-            <path d="M15 5h6" />
-            <path d="M18 2v6" />
-            <path d="M4 18c0-2.7 2.2-5 5-5h3" />
-            <path d="M13 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
-          </>
-        ),
-      },
-      {
-        href: "/email-accounts",
-        label: "Email accounts",
-        icon: (
-          <>
-            <path d="M4 6h16v12H4z" />
-            <path d="m4 8 8 5 8-5" />
-          </>
-        ),
-      },
-      {
-        href: "/email-settings/email-categories",
-        label: "Email categories",
-        icon: (
-          <>
-            <path d="M4 6h16v12H4z" />
-            <path d="M8 10h8" />
-            <path d="M8 14h5" />
-          </>
-        ),
-      },
-      {
-        href: "/email-settings/email-category-matrix",
-        label: "Category matrix",
-        icon: (
-          <>
-            <rect x="3" y="4" width="7" height="7" rx="1" />
-            <rect x="14" y="4" width="7" height="7" rx="1" />
-            <rect x="3" y="15" width="7" height="7" rx="1" />
-            <rect x="14" y="15" width="7" height="7" rx="1" />
-          </>
-        ),
-      },
-      {
-        href: "/tasks/all",
-        label: "Tasks",
+        href: "/tasks",
+        label: "My Tasks",
         icon: (
           <>
             <path d="M9 11 12 14 22 4" />
@@ -138,7 +85,7 @@ function getNavItems(pathname: string, role?: string | null): NavItem[] {
     },
     {
       href: "/tasks",
-      label: "Open tasks",
+      label: "My Tasks",
       icon: (
         <>
           <path d="M9 11 12 14 22 4" />
@@ -157,37 +104,22 @@ function getNavItems(pathname: string, role?: string | null): NavItem[] {
         </>
       ),
     },
-    ...(adminAccess
-      ? [
-          {
-            href: "/admin",
-            label: "Admin",
-            icon: <path d="M12 3 4 7v5c0 5 3.5 8 8 9 4.5-1 8-4 8-9V7l-8-4Z" />,
-          } satisfies NavItem,
-        ]
-      : []),
   ];
 }
 
 function SidebarLink({
   item,
-  active,
   collapsed,
 }: {
   item: NavItem;
-  active: boolean;
   collapsed: boolean;
 }) {
   return (
     <Link
       href={item.href}
       title={item.label}
-      aria-current={active ? "page" : undefined}
       className={[
         "group flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors",
-        active
-          ? "bg-indigo-50 text-indigo-700"
-          : "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
         collapsed ? "justify-center" : "",
       ].join(" ")}
     >
@@ -209,8 +141,6 @@ function SidebarLink({
 }
 
 export default function Navbar() {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const router = useRouter();
   const { user, isAuthReady, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(() => {
@@ -221,7 +151,7 @@ export default function Navbar() {
     return window.matchMedia("(max-width: 767px)").matches;
   });
 
-  const navItems = useMemo(() => getNavItems(pathname, user?.role), [pathname, user?.role]);
+  const navItems = useMemo(() => getNavItems(user?.role), [user?.role]);
 
   useLayoutEffect(() => {
     document.documentElement.style.setProperty(
@@ -253,13 +183,11 @@ export default function Navbar() {
             </svg>
           </button>
         </div>
-
         <nav className="flex-1 space-y-2 overflow-y-auto px-3 py-4">
           {navItems.map((item) => (
             <SidebarLink
               key={item.href}
               item={item}
-              active={isActivePath(pathname, searchParams, item.href)}
               collapsed={collapsed}
             />
           ))}
@@ -318,21 +246,7 @@ export default function Navbar() {
                 {collapsed ? "In" : "Log in"}
               </Link>
             )}
-            {hasAdminAccess(user?.role) && pathname.startsWith("/admin") ? (
-              <Link
-                href="/"
-                className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-              >
-                {collapsed ? "User" : "User dashboard"}
-              </Link>
-            ) : hasAdminAccess(user?.role) ? (
-              <Link
-                href="/admin"
-                className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-              >
-                {collapsed ? "Adm" : "Admin dashboard"}
-              </Link>
-            ) : null}
+
           </div>
         </div>
       </div>
