@@ -17,9 +17,15 @@ export type TaskDto = {
     additionalInformation?: string;
     category?: string;
 };
+export enum TaskStatusList {
+  Assigned = "Assigned",
+  Hold = "Hold",
+  Escalated = "Escalated",
+  Closed = "Closed",
+}
 
-export const GetTasksByOrganisation = async (organisationId: string, status: string | null): Promise<TaskDto[]> => {
-    const response = await fetch(`${BASE_URL}/emailtasks/by-organisation/${organisationId}?status=${status}`, {
+export const GetAllTasks = async (): Promise<TaskDto[]> => {
+    const response = await fetch(`${BASE_URL}/emailtasks/all-tasks`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -39,9 +45,50 @@ export const GetTasksByOrganisation = async (organisationId: string, status: str
     const data = await response.json();
     return data;
 };
-
-export const GetTasksByUser = async (userId: string, status: string | null): Promise<TaskDto[]> => {
-    const response = await fetch(`${BASE_URL}/emailtasks/by-user/${userId}?status=${status}`, {
+export const GetOpenTasks = async (): Promise<TaskDto[]> => {
+    const response = await fetch(`${BASE_URL}/emailtasks/all-tasks/open`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+    if (!response.ok) {
+        const errors = await response.json();
+        if (errors.errors) {
+            const message = Object.values(errors.errors)
+                .flat()
+                .join(", ");
+            throw new Error(message)
+        } else {
+            throw new Error(errors.detail || "Failed to fetch tasks");
+        }
+    }
+    const data = await response.json();
+    return data;
+};
+export const GetTasksByUser = async (userId: string): Promise<TaskDto[]> => {
+    const response = await fetch(`${BASE_URL}/emailtasks/by-user/${userId}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+    if (!response.ok) {
+        const errors = await response.json();
+        if (errors.errors) {
+            const message = Object.values(errors.errors)
+                .flat()
+                .join(", ");
+            throw new Error(message)
+        } else {
+            throw new Error(errors.detail || "Failed to fetch tasks");
+        }
+    }
+    const data = await response.json();
+    return data;
+};
+export const GetOpenTasksByUser = async (userId: string): Promise<TaskDto[]> => {
+    const response = await fetch(`${BASE_URL}/emailtasks/by-user/${userId}/open`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',

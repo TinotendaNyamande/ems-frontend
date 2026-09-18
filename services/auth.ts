@@ -1,5 +1,5 @@
 import { BASE_URL } from "./helper";
-
+export const MIN_PASSWORD_LENGTH = 4;
 export type AuthResponse = {
   token: string;
   email: string;
@@ -100,13 +100,14 @@ export const register = async (
   email: string,
   password: string,
   firstName: string,
-  lastName: string
+  lastName: string,
+  role?: string
 ): Promise<AuthResponse> => {
 
   const response = await fetch(`${BASE_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, firstName, lastName }),
+    body: JSON.stringify({ email, password, firstName, lastName, role }),
     credentials: "include",
   })
   const data = await response.json();

@@ -107,7 +107,7 @@ export async function testEmailAccount(
   payload: TestEmailAccountPayload,
   token: string
 ): Promise<void> {
-  const response = await fetch(`${BASE_URL}/emailaccount/${id}/test-email`, {
+  const response = await fetch(`${BASE_URL}/emailaccount/${id}/send-test-email`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -131,7 +131,7 @@ export async function testEmailAccount(
 }
 
 export async function validateEmailAccount(id: string, token: string): Promise<void> {
-  const response = await fetch(`${BASE_URL}/emailaccount/${id}/validate-email`, {
+  const response = await fetch(`${BASE_URL}/emailaccount/${id}/validate`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",

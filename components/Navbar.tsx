@@ -64,14 +64,14 @@ function getNavItems(role?: string | null): NavItem[] {
 
       {
         href: "/tasks",
-        label: "My Tasks",
+        label: "View Tasks",
         icon: (
           <>
             <path d="M9 11 12 14 22 4" />
             <path d="M21 12.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11.5" />
           </>
         ),
-      },
+      }
     ];
   }
 
@@ -85,25 +85,14 @@ function getNavItems(role?: string | null): NavItem[] {
     },
     {
       href: "/tasks",
-      label: "My Tasks",
+      label: "View Tasks",
       icon: (
         <>
           <path d="M9 11 12 14 22 4" />
           <path d="M21 12.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11.5" />
         </>
       ),
-    },
-    {
-      href: "/tasks/all",
-      label: "All tasks",
-      icon: (
-        <>
-          <path d="M9 11 12 14 22 4" />
-          <path d="M21 12.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11.5" />
-          <path d="M4 16h16" />
-        </>
-      ),
-    },
+    }
   ];
 }
 

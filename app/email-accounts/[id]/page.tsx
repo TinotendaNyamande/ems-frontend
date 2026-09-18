@@ -472,7 +472,7 @@ export default function EmailAccountDetailsPage() {
           </>
         ) : (
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-            <p className="text-sm font-semibold text-slate-900">Mailbox not found</p>
+            <p className="text-sm font-semibold text-slate-900">Email Account found</p>
             <Link
               href="/email-accounts"
               className="mt-4 inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-indigo-600 transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
@@ -652,7 +652,6 @@ export default function EmailAccountDetailsPage() {
                   >
                     Cancel
                   </button>
-                  <CanPerformAction permission={PermissionKeys.MailBoxesEdit}>
                     <button
                       type="submit"
                       disabled={changePasswordMutation.isPending || changeSecretMutation.isPending}
@@ -660,7 +659,6 @@ export default function EmailAccountDetailsPage() {
                     >
                       {changePasswordMutation.isPending || changeSecretMutation.isPending ? "Saving..." : "Save changes"}
                     </button>
-                  </CanPerformAction>
                 </div>
               </form>
             </section>
@@ -729,7 +727,6 @@ export default function EmailAccountDetailsPage() {
                   >
                     Cancel
                   </button>
-                  <CanPerformAction permission={PermissionKeys.MailBoxesEdit}>
                     <button
                       type="submit"
                       disabled={testEmailMutation.isPending || !token}
@@ -737,7 +734,6 @@ export default function EmailAccountDetailsPage() {
                     >
                       {testEmailMutation.isPending ? "Sending..." : "Send test email"}
                     </button>
-                  </CanPerformAction>
                 </div>
               </form>
             </section>

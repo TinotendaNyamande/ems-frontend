@@ -62,14 +62,14 @@ export const CreateUser = async (token: string, userData: CreateUserRequest): Pr
   }
 };
 
-export const AssignUserRole = async (token: string, userId: string, roleId: string): Promise<void> => {
-  const response = await fetch(`${BASE_URL}/users/assign-role`, {
+export const AssignUserRole = async (token: string, userId: string, newRole: string): Promise<void> => {
+  const response = await fetch(`${BASE_URL}/users/change-role`, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${token}`,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ userId,roleId })
+    body: JSON.stringify({ userId,newRole })
   });
   if (!response.ok) {
     const data = await response.json().catch(() => null);

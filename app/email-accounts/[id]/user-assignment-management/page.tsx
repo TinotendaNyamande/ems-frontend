@@ -42,6 +42,8 @@ export default function EmailCategoryMatrixPage() {
   const confirm = useConfirm();
   const [selectedUserId, setSelectedUserId] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [filterUserId, setFilterUserId] = useState("");
+  const [filterCategoryId, setFilterCategoryId] = useState("");
   const params = useParams<{ id: string }>();
 
   const matrixQueryKey = useMemo(
@@ -203,124 +205,201 @@ export default function EmailCategoryMatrixPage() {
     );
   }
 
-  const visibleMatrices = matrices ?? [];
+  const allMatrices = matrices ?? [];
 
+  const visibleMatrices = useMemo(() => {
+    return allMatrices.filter((matrix) => {
+      const matchesUser = !filterUserId || matrix.userid === filterUserId;
+      const matchesCategory = !filterCategoryId || matrix.categoryId === filterCategoryId;
+      return matchesUser && matchesCategory;
+    });
+  }, [allMatrices, filterUserId, filterCategoryId]);
+
+  const hasActiveFilters = Boolean(filterUserId || filterCategoryId);
+
+  const clearFilters = () => {
+    setFilterUserId("");
+    setFilterCategoryId("");
+  };
   return (
-      <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-6xl flex-col gap-6">
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wide text-indigo-700">
+                Email settings
+              </p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+                Email category matrix
+              </h1>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link
+                href={`/email-accounts/${params.id}/email-categories`}
+                className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-300 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+              >
+                Email categories
+              </Link>
+              <Link
+                href="/users"
+                className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-300 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+              >
+                Users
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Assignments
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-slate-950">{visibleMatrices.length}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Users</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-950">{users?.length ?? 0}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Categories
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-slate-950">
+              {categories?.length ?? 0}
+            </p>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900">Create assignment</h2>
+            </div>
+          </div>
+
+          {isUsersLoading || isCategoriesLoading ? (
+            <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700">
+              Loading users and categories...
+            </div>
+          ) : isUsersError ? (
+            <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-5">
+              <p className="text-sm font-semibold text-rose-900">Failed to load users</p>
+              <p className="mt-1 text-sm text-rose-800">
+                {(usersError as Error)?.message || "An unexpected error occurred."}
+              </p>
+              <button
+                type="button"
+                onClick={() => refetchUsers()}
+                className="mt-4 inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
+              >
+                Retry
+              </button>
+            </div>
+          ) : isCategoriesError ? (
+            <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-5">
+              <p className="text-sm font-semibold text-rose-900">Failed to load categories</p>
+              <p className="mt-1 text-sm text-rose-800">
+                {(categoriesError as Error)?.message || "An unexpected error occurred."}
+              </p>
+              <button
+                type="button"
+                onClick={() => refetchCategories()}
+                className="mt-4 inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
+              >
+                Retry
+              </button>
+            </div>
+          ) : !users?.length || !categories?.length ? (
+            <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6">
+              <p className="text-sm font-semibold text-slate-900">Nothing to assign yet</p>
+              <p className="mt-1 text-sm text-slate-600">
+                You need at least one user and one email category before you can create a matrix
+                entry.
+              </p>
+            </div>
+          ) : (
+            <form onSubmit={handleCreateSubmit} className="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr_auto]">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-wide text-indigo-700">
-                  Email settings
-                </p>
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-                  Email category matrix
-                </h1>
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href={`/email-accounts/${params.id}/email-categories`}
-                  className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-300 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                <label htmlFor="matrixUser" className="block text-sm font-medium text-slate-700">
+                  User
+                </label>
+                <select
+                  id="matrixUser"
+                  value={selectedUserId}
+                  onChange={(event) => setSelectedUserId(event.target.value)}
+                  className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-70"
+                  disabled={createMutation.isPending}
                 >
-                  Email categories
-                </Link>
-                <Link
-                  href="/users"
-                  className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-300 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-                >
-                  Users
-                </Link>
+                  <option value="">Select a user</option>
+                  {users.map((organisationUser) => (
+                    <option key={organisationUser.id} value={organisationUser.id}>
+                      {getUserDisplayName(organisationUser)}
+                    </option>
+                  ))}
+                </select>
               </div>
-            </div>
-          </section>
 
-          <section className="grid gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Assignments
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-slate-950">{visibleMatrices.length}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Users</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-950">{users?.length ?? 0}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Categories
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-slate-950">
-                {categories?.length ?? 0}
-              </p>
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-slate-900">Create assignment</h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  Pick a user and a category to create a new matrix entry.
-                </p>
+                <label htmlFor="matrixCategory" className="block text-sm font-medium text-slate-700">
+                  Email category
+                </label>
+                <select
+                  id="matrixCategory"
+                  value={selectedCategoryId}
+                  onChange={(event) => setSelectedCategoryId(event.target.value)}
+                  className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-70"
+                  disabled={createMutation.isPending}
+                >
+                  <option value="">Select a category</option>
+                  {categories.map((category: EmailCategoryDto) => (
+                    <option key={category.id} value={category.id}>
+                      {category.categoryName}
+                    </option>
+                  ))}
+                </select>
               </div>
-            </div>
 
-            {isUsersLoading || isCategoriesLoading ? (
-              <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700">
-                Loading users and categories...
-              </div>
-            ) : isUsersError ? (
-              <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-5">
-                <p className="text-sm font-semibold text-rose-900">Failed to load users</p>
-                <p className="mt-1 text-sm text-rose-800">
-                  {(usersError as Error)?.message || "An unexpected error occurred."}
-                </p>
+              <div className="flex items-end">
                 <button
-                  type="button"
-                  onClick={() => refetchUsers()}
-                  className="mt-4 inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
+                  type="submit"
+                  disabled={createMutation.isPending || !token}
+                  className="inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm ring-1 ring-indigo-600 transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  Retry
+                  {createMutation.isPending ? "Creating..." : "Create assignment"}
                 </button>
               </div>
-            ) : isCategoriesError ? (
-              <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-5">
-                <p className="text-sm font-semibold text-rose-900">Failed to load categories</p>
-                <p className="mt-1 text-sm text-rose-800">
-                  {(categoriesError as Error)?.message || "An unexpected error occurred."}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => refetchCategories()}
-                  className="mt-4 inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
-                >
-                  Retry
-                </button>
-              </div>
-            ) : !users?.length || !categories?.length ? (
-              <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6">
-                <p className="text-sm font-semibold text-slate-900">Nothing to assign yet</p>
-                <p className="mt-1 text-sm text-slate-600">
-                  You need at least one user and one email category before you can create a matrix
-                  entry.
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handleCreateSubmit} className="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr_auto]">
+            </form>
+          )}
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900">Email Account assignments</h2>
+            </div>
+            <span className="inline-flex w-fit items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-100">
+              {hasActiveFilters
+                ? `${visibleMatrices.length} of ${allMatrices.length} shown`
+                : `${allMatrices.length} total`}
+            </span>
+          </div>
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div className="grid flex-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="matrixUser" className="block text-sm font-medium text-slate-700">
-                    User
+                  <label htmlFor="filterUser" className="block text-sm font-medium text-slate-700">
+                    Filter by user
                   </label>
                   <select
-                    id="matrixUser"
-                    value={selectedUserId}
-                    onChange={(event) => setSelectedUserId(event.target.value)}
-                    className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-70"
-                    disabled={createMutation.isPending}
+                    id="filterUser"
+                    value={filterUserId}
+                    onChange={(event) => setFilterUserId(event.target.value)}
+                    className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                   >
-                    <option value="">Select a user</option>
-                    {users.map((organisationUser) => (
+                    <option value="">All users</option>
+                    {users?.map((organisationUser) => (
                       <option key={organisationUser.id} value={organisationUser.id}>
                         {getUserDisplayName(organisationUser)}
                       </option>
@@ -329,146 +408,137 @@ export default function EmailCategoryMatrixPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="matrixCategory" className="block text-sm font-medium text-slate-700">
-                    Email category
+                  <label htmlFor="filterCategory" className="block text-sm font-medium text-slate-700">
+                    Filter by category
                   </label>
                   <select
-                    id="matrixCategory"
-                    value={selectedCategoryId}
-                    onChange={(event) => setSelectedCategoryId(event.target.value)}
-                    className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-70"
-                    disabled={createMutation.isPending}
+                    id="filterCategory"
+                    value={filterCategoryId}
+                    onChange={(event) => setFilterCategoryId(event.target.value)}
+                    className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                   >
-                    <option value="">Select a category</option>
-                    {categories.map((category: EmailCategoryDto) => (
+                    <option value="">All categories</option>
+                    {categories?.map((category: EmailCategoryDto) => (
                       <option key={category.id} value={category.id}>
                         {category.categoryName}
                       </option>
                     ))}
                   </select>
                 </div>
-
-                <div className="flex items-end">
-                    <button
-                      type="submit"
-                      disabled={createMutation.isPending || !token}
-                      className="inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm ring-1 ring-indigo-600 transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      {createMutation.isPending ? "Creating..." : "Create assignment"}
-                    </button>
-                </div>
-              </form>
-            )}
-          </section>
-
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-slate-900">Email Account assignments</h2>
               </div>
-              <span className="inline-flex w-fit items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-100">
-                {visibleMatrices.length} total
-              </span>
-            </div>
 
-            {isMatricesLoading ? (
-              <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700">
-                Loading email category assignments...
-              </div>
-            ) : isMatricesError ? (
-              <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-5">
-                <p className="text-sm font-semibold text-rose-900">Failed to load assignments</p>
-                <p className="mt-1 text-sm text-rose-800">
-                  {(matricesError as Error)?.message || "An unexpected error occurred."}
-                </p>
+              {hasActiveFilters && (
                 <button
                   type="button"
-                  onClick={() => refetchMatrices()}
-                  className="mt-4 inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
+                  onClick={clearFilters}
+                  className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-300 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                 >
-                  Retry
+                  Clear filters
                 </button>
+              )}
+            </div>
+          </div>
+
+          {isMatricesLoading ? (
+            <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700">
+              Loading email category assignments...
+            </div>
+          ) : isMatricesError ? (
+            <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-5">
+              <p className="text-sm font-semibold text-rose-900">Failed to load assignments</p>
+              <p className="mt-1 text-sm text-rose-800">
+                {(matricesError as Error)?.message || "An unexpected error occurred."}
+              </p>
+              <button
+                type="button"
+                onClick={() => refetchMatrices()}
+                className="mt-4 inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
+              >
+                Retry
+              </button>
+            </div>
+          ) : visibleMatrices.length === 0 ? (
+            <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6">
+              <p className="text-sm font-semibold text-slate-900">
+                {hasActiveFilters ? "No assignments match your filters" : "No assignments yet"}
+              </p>
+              {hasActiveFilters && (
+                <p className="mt-1 text-sm text-slate-600">
+                  Try adjusting or clearing the filters above.
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200">
+              <div className="hidden bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 md:grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,0.7fr)_minmax(0,0.8fr)_minmax(10rem,0.8fr)]">
+                <span>User</span>
+                <span>Category</span>
+                <span>Status</span>
+                <span>Last assigned</span>
+                <span>Actions</span>
               </div>
-            ) : visibleMatrices.length === 0 ? (
-              <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6">
-                <p className="text-sm font-semibold text-slate-900">No assignments yet</p>
-              </div>
-            ) : (
-              <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200">
-                <div className="hidden bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 md:grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,0.7fr)_minmax(0,0.8fr)_minmax(10rem,0.8fr)]">
-                  <span>User</span>
-                  <span>Category</span>
-                  <span>Status</span>
-                  <span>Last assigned</span>
-                  <span>Actions</span>
-                </div>
-                <ul className="divide-y divide-slate-200 bg-white">
-                  {visibleMatrices.map((matrix: EmailCategoryMatrixDto) => (
-                    <li key={matrix.id} className="px-4 py-4">
-                      <div className="space-y-3 md:grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,0.7fr)_minmax(0,0.8fr)_minmax(10rem,0.8fr)] md:gap-4 md:space-y-0 md:items-center">
-                        <div>
-                          <p className="text-xs font-medium text-slate-500 md:hidden">User</p>
-                          <p className="font-semibold text-slate-900">
-                            {getUserDisplayNameFromMatrix(matrix)}
-                          </p>
-                          <p className="mt-1 break-all text-sm text-slate-600">{matrix.userid}</p>
-                        </div>
-
-                        <div>
-                          <p className="text-xs font-medium text-slate-500 md:hidden">Category</p>
-                          <p className="font-semibold text-slate-900">{matrix.categoryName}</p>
-                          <p className="mt-1 break-all text-sm text-slate-600">{matrix.categoryId}</p>
-                        </div>
-
-                        <div>
-                          <p className="text-xs font-medium text-slate-500 md:hidden">Status</p>
-                          <span
-                            className={[
-                              "inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1",
-                              matrix.isAvailable
-                                ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
-                                : "bg-slate-100 text-slate-600 ring-slate-200",
-                            ].join(" ")}
-                          >
-                            {matrix.isAvailable ? "Available" : "Unavailable"}
-                          </span>
-                        </div>
-
-                        <div>
-                          <p className="text-xs font-medium text-slate-500 md:hidden">Last assigned</p>
-                          <p className="text-sm text-slate-700">{formatDate(matrix.lastAssignedDate)}</p>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          <Link
-                            href={`/email-accounts/${params.id}/email-category-matrix/${matrix.id}`}
-                            className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-                          >
-                            View
-                          </Link>
-                          <Link
-                            href={`/email-accounts/${params.id}/email-category-matrix/user/${matrix.userid}`}
-                            className="inline-flex items-center justify-center rounded-xl bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-sm ring-1 ring-slate-300 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-                          >
-                            User view
-                          </Link>
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(matrix.id)}
-                              disabled={deleteMutation.isPending}
-                              className="inline-flex items-center justify-center rounded-xl bg-rose-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-                            >
-                              Delete
-                            </button>
-                        </div>
+              <ul className="divide-y divide-slate-200 bg-white">
+                {visibleMatrices.map((matrix: EmailCategoryMatrixDto) => (
+                  <li key={matrix.id} className="px-4 py-4">
+                    <div className="space-y-3 md:grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,0.7fr)_minmax(0,0.8fr)_minmax(10rem,0.8fr)] md:gap-4 md:space-y-0 md:items-center">
+                      <div>
+                        <p className="text-xs font-medium text-slate-500 md:hidden">User</p>
+                        <p className="font-semibold text-slate-900">
+                          {getUserDisplayNameFromMatrix(matrix)}
+                        </p>
+                        <p className="mt-1 break-all text-sm text-slate-600">{matrix.userid}</p>
                       </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </section>
-        </div>
-      </main>
+
+                      <div>
+                        <p className="text-xs font-medium text-slate-500 md:hidden">Category</p>
+                        <p className="font-semibold text-slate-900">{matrix.categoryName}</p>
+                        <p className="mt-1 break-all text-sm text-slate-600">{matrix.categoryId}</p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-medium text-slate-500 md:hidden">Status</p>
+                        <span
+                          className={[
+                            "inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1",
+                            matrix.isAvailable
+                              ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
+                              : "bg-slate-100 text-slate-600 ring-slate-200",
+                          ].join(" ")}
+                        >
+                          {matrix.isAvailable ? "Available" : "Unavailable"}
+                        </span>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-medium text-slate-500 md:hidden">Last assigned</p>
+                        <p className="text-sm text-slate-700">{formatDate(matrix.lastAssignedDate)}</p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          href={{ pathname: `/users/${matrix.userid}` }}
+                          prefetch={false}
+                          className="inline-flex items-center justify-center rounded-xl bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-sm ring-1 ring-slate-300 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                        >
+                          User view
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(matrix.id)}
+                          disabled={deleteMutation.isPending}
+                          className="inline-flex items-center justify-center rounded-xl bg-rose-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+      </div>
+    </main>
   );
 }

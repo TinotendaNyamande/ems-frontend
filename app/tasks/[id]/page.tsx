@@ -5,24 +5,21 @@ import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSnackbar } from "notistack";
-import { NoOrganisation } from "@/components/NoOrganisationDashboard";
 import { useAuth } from "@/context/AuthContext";
 import {
   GetTaskById,
   addTaskNotes,
-  closeTask,
   reassignedTask,
   deleteTask,
   changeTaskStatus,
   ReOpenTask,
+  TaskStatusList,
 } from "@/services/tasks";
 import { getAllUsers } from "@/services/users";
 import { ProtectedPage } from "@/components/ProtectedPage";
 import { PermissionKeys } from "@/contants/PermissionKey";
 import { ErrorPanel } from "@/components/ErrorPanel";
-import { CanPerformAction } from "@/components/CanPerformAction";
 import { useConfirm } from "@/context/useConfirm";
-import { TaskStatusList } from "../page";
 
 export default function TaskDetailsPage() {
   const params = useParams<{ id: string }>();
@@ -33,7 +30,6 @@ export default function TaskDetailsPage() {
   const queryClient = useQueryClient();
   const confirm = useConfirm();
 
-  const organisationId = user?.organisationId ?? "";
 
   const [noteText, setNoteText] = useState("");
   const [reassignUserId, setReassignUserId] = useState("");
@@ -43,7 +39,7 @@ export default function TaskDetailsPage() {
   const [newStatus, setNewStatus] = useState<TaskStatusList | "">("");
 
   const taskQueryKey = useMemo(() => ["task", taskId, token], [taskId, token]);
-  const usersQueryKey = useMemo(() => ["organisationUsers", organisationId, token], [organisationId, token]);
+  const usersQueryKey = useMemo(() => ["allUsers", token], [token]);
 
   const {
     data: task,
@@ -59,8 +55,8 @@ export default function TaskDetailsPage() {
 
   const { data: orgUsers } = useQuery({
     queryKey: usersQueryKey,
-    enabled: isAuthReady && Boolean(organisationId && token),
-    queryFn: () => getAllUsers(token!, organisationId),
+    enabled: isAuthReady && Boolean(token),
+    queryFn: () => getAllUsers(token!),
   });
 
   const addNoteMutation = useMutation({
@@ -100,7 +96,7 @@ export default function TaskDetailsPage() {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: (newStatus: string) => changeTaskStatus(taskId, newStatus, closingNotes,user?.organisationId),
+    mutationFn: (newStatus: string) => changeTaskStatus(taskId, newStatus, closingNotes,),
     onSuccess: () => {
       enqueueSnackbar("Task status updated successfully.", { variant: "success" });
       setIsStatusModalOpen(false);
@@ -111,6 +107,11 @@ export default function TaskDetailsPage() {
       enqueueSnackbar((err as Error)?.message || "Failed to update task status.", { variant: "error" });
     },
   });
+  const closeUpdateStatusModal =()=>{
+    setIsStatusModalOpen(false);
+    setNewStatus("");
+    setClosingNotes("");
+  }
 
   const deleteTaskMutation = useMutation({
     mutationFn: () => deleteTask(taskId),
@@ -186,9 +187,6 @@ export default function TaskDetailsPage() {
     );
   }
 
-  if (!organisationId) {
-    return <NoOrganisation />;
-  }
 
   const assignedUserLabel = task
     ? [task.assignedToUserFirstName, task.assignedToUserLastName].filter(Boolean).join(" ") || task.assignedToUser || "Unassigned"
@@ -221,38 +219,32 @@ export default function TaskDetailsPage() {
                   Reopen Task
                 </button>
               )}
-              <CanPerformAction permission={PermissionKeys.TasksEdit}>
-                {!isClosed && (
-                  <button
-                    type="button"
-                    onClick={() => setIsStatusModalOpen(true)}
-                    className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
-                  >
-                    Update Status
-                  </button>
-                )}
-              </CanPerformAction>
-              <CanPerformAction permission={PermissionKeys.TasksEdit}>
-                {!isClosed && (
-                  <button
-                    type="button"
-                    onClick={() => setIsReassignModalOpen(true)}
-                    className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
-                  >
-                    Reassign Task
-                  </button>
-                )}
-              </CanPerformAction>
-              <CanPerformAction permission={PermissionKeys.TasksDelete}>
+              {!isClosed && (
                 <button
                   type="button"
-                  onClick={handleDeleteClick}
-                  disabled={deleteTaskMutation.isPending}
-                  className="inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 cursor-pointer disabled:opacity-50"
+                  onClick={() => setIsStatusModalOpen(true)}
+                  className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
                 >
-                  Delete Task
+                  Update Status
                 </button>
-              </CanPerformAction>
+              )}
+              {!isClosed && (
+                <button
+                  type="button"
+                  onClick={() => setIsReassignModalOpen(true)}
+                  className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
+                >
+                  Reassign Task
+                </button>
+              )}
+              {user.role == 'Admin' && <button
+                type="button"
+                onClick={handleDeleteClick}
+                disabled={deleteTaskMutation.isPending}
+                className="inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 cursor-pointer disabled:opacity-50"
+              >
+                Delete Task
+              </button>}
             </div>
           </div>
 
@@ -291,7 +283,7 @@ export default function TaskDetailsPage() {
                             "inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium ring-1 ring-inset",
                             isClosed
                               ? "bg-slate-50 text-slate-700 ring-slate-600/10"
-                              : task.status === TaskStatusList.New
+                              : task.status === TaskStatusList.Assigned
                                 ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
                                 : "bg-blue-50 text-blue-700 ring-blue-600/20"
                           ].join(" ")}
@@ -462,20 +454,17 @@ export default function TaskDetailsPage() {
                     const val = e.target.value;
                     setNewStatus(val.toString() as TaskStatusList | "");
                   }}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                 >
-                  <option value={TaskStatusList.New}>NEW</option>
-                  <option value={TaskStatusList.Assigned}>ASSIGNED</option>
-                  <option value={TaskStatusList.InProgress}>IN PROGRESS</option>
-                  <option value={TaskStatusList.Blocked}>BLOCKED</option>
+                  <option value="">---</option>
+                  <option value={TaskStatusList.Hold}>HOLD</option>
                   <option value={TaskStatusList.Escalated}>ESCALATED</option>
                   <option value={TaskStatusList.Closed}>CLOSED</option>
                 </select>
               </div>
-              {newStatus === TaskStatusList.Closed && (
                 <div>
                   <label htmlFor="closingNotes" className="block text-sm font-semibold text-slate-700">
-                    Closing Notes / Resolution Information
+                    Additional Information Information
                   </label>
                   <textarea
                     id="closingNotes"
@@ -487,7 +476,7 @@ export default function TaskDetailsPage() {
                     className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                   />
                 </div>
-              )}
+              
               <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
@@ -498,7 +487,7 @@ export default function TaskDetailsPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={updateStatusMutation.isPending}
+                  disabled={updateStatusMutation.isPending|| !closingNotes || !newStatus}
                   className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition disabled:opacity-50 cursor-pointer"
                 >
                   {updateStatusMutation.isPending ? "Updating..." : "Update Status"}

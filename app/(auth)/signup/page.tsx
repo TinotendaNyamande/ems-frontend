@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { useSnackbar } from "notistack";
 import { SyntheticEvent, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { MIN_PASSWORD_LENGTH } from "@/services/auth";
 
-const MIN_PASSWORD_LENGTH = 4;
 
 export default function SignupPage() {
   const [firstName, setFirstName] = useState("");

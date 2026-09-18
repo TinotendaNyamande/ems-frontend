@@ -5,17 +5,10 @@ import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
-import { GetTasksByUser, type TaskDto } from "@/services/tasks";
+import { GetTasksByUser, TaskStatusList, type TaskDto } from "@/services/tasks";
 import { ErrorPanel } from "@/components/ErrorPanel";
 
-export enum TaskStatusList {
-  New = "New",
-  Assigned = "Assigned",
-  InProgress = "InProgress",
-  Blocked = "Blocked",
-  Escalated = "Escalated",
-  Closed = "Closed",
-}
+
 
 function isClosedTask(task: TaskDto) {
   return task.status?.toLowerCase() === "closed";
