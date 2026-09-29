@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import { GetTasksByUser, TaskStatusList, type TaskDto } from "@/services/tasks";
+import SlaModal from "@/components/SlaModal";
 import { ErrorPanel } from "@/components/ErrorPanel";
 
 
@@ -26,6 +27,8 @@ export default function TasksPage() {
   const userId = user?.id ?? "";
 
   const [statusFilter, setStatusFilter] = useState<"all" | TaskStatusList>("all");
+  const [isSlaOpen, setIsSlaOpen] = useState(false);
+  const [slaTaskId, setSlaTaskId] = useState<string | null>(null);
 
   const tasksQueryKey = useMemo(() => ["tasks", userId], [userId]);
 
@@ -169,6 +172,13 @@ export default function TasksPage() {
                       "Unassigned";
                     const isClosed = isClosedTask(task);
 
+                    const openSla = (e: any, id: string) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSlaTaskId(id);
+                      setIsSlaOpen(true);
+                    };
+
                     return (
                       <li key={task.id} className="transition-colors hover:bg-slate-50">
                         <Link href={`/tasks/${task.id}`} className="block px-4 py-4">
@@ -201,12 +211,21 @@ export default function TasksPage() {
                                 {task.status}
                               </span>
                             </div>
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={(e) => openSla(e, task.id)}
+                                className="rounded-md bg-white px-3 py-1 text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50"
+                              >
+                                View SLA
+                              </button>
+                            </div>
                           </div>
                         </Link>
                       </li>
                     );
                   })}
                 </ul>
+                <SlaModal taskId={slaTaskId} open={isSlaOpen} onClose={() => setIsSlaOpen(false)} />
               </div>
             )}
           </section>

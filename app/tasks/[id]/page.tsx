@@ -6,8 +6,12 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSnackbar } from "notistack";
 import { useAuth } from "@/context/AuthContext";
+import SlaModal from "@/components/SlaModal";
+
 import {
   GetTaskById,
+  GetAuditTrailForTask,
+  type TaskAuditTrailDto,
   addTaskNotes,
   reassignedTask,
   deleteTask,
@@ -16,8 +20,6 @@ import {
   TaskStatusList,
 } from "@/services/tasks";
 import { getAllUsers } from "@/services/users";
-import { ProtectedPage } from "@/components/ProtectedPage";
-import { PermissionKeys } from "@/contants/PermissionKey";
 import { ErrorPanel } from "@/components/ErrorPanel";
 import { useConfirm } from "@/context/useConfirm";
 
@@ -30,16 +32,21 @@ export default function TaskDetailsPage() {
   const queryClient = useQueryClient();
   const confirm = useConfirm();
 
-
   const [noteText, setNoteText] = useState("");
   const [reassignUserId, setReassignUserId] = useState("");
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
   const [closingNotes, setClosingNotes] = useState("");
   const [newStatus, setNewStatus] = useState<TaskStatusList | "">("");
+  const [isSlaOpen, setIsSlaOpen] = useState(false);
+  const [isAuditTrailOpen, setIsAuditTrailOpen] = useState(false);
 
   const taskQueryKey = useMemo(() => ["task", taskId, token], [taskId, token]);
   const usersQueryKey = useMemo(() => ["allUsers", token], [token]);
+  const auditTrailQueryKey = useMemo(
+    () => ["taskAuditTrail", taskId, token],
+    [taskId, token]
+  );
 
   const {
     data: task,
@@ -59,68 +66,94 @@ export default function TaskDetailsPage() {
     queryFn: () => getAllUsers(token!),
   });
 
+  const {
+    data: auditTrail = [],
+    isLoading: isAuditTrailLoading,
+    isError: isAuditTrailError,
+    error: auditTrailError,
+    refetch: refetchAuditTrail,
+  } = useQuery({
+    queryKey: auditTrailQueryKey,
+    enabled: isAuthReady && Boolean(taskId && token) && isAuditTrailOpen,
+    queryFn: () => GetAuditTrailForTask(taskId),
+  });
+
   const addNoteMutation = useMutation({
-    mutationFn: (notes: string) => addTaskNotes(taskId, notes),
+    mutationFn: (notes: string) => addTaskNotes(taskId, notes, user?.id),
     onSuccess: () => {
       enqueueSnackbar("Note added successfully.", { variant: "success" });
       setNoteText("");
       queryClient.invalidateQueries({ queryKey: taskQueryKey });
     },
     onError: (err: unknown) => {
-      enqueueSnackbar((err as Error)?.message || "Failed to add note.", { variant: "error" });
+      enqueueSnackbar((err as Error)?.message || "Failed to add note.", {
+        variant: "error",
+      });
     },
   });
 
   const reassignMutation = useMutation({
-    mutationFn: (newUserId: string) => reassignedTask(taskId, newUserId),
+    mutationFn: (newUserId: string) => reassignedTask(taskId, newUserId, user?.id),
     onSuccess: () => {
       enqueueSnackbar("Task reassigned successfully.", { variant: "success" });
       setReassignUserId("");
+      setIsReassignModalOpen(false);
       queryClient.invalidateQueries({ queryKey: taskQueryKey });
     },
     onError: (err: unknown) => {
-      enqueueSnackbar((err as Error)?.message || "Failed to reassign task.", { variant: "error" });
+      enqueueSnackbar((err as Error)?.message || "Failed to reassign task.", {
+        variant: "error",
+      });
     },
   });
 
   const reopenTaskMutation = useMutation({
-    mutationFn: () => ReOpenTask(taskId),
+    mutationFn: () => ReOpenTask(taskId, user?.id),
     onSuccess: () => {
       enqueueSnackbar("Task reopened successfully.", { variant: "success" });
       setClosingNotes("");
       queryClient.invalidateQueries({ queryKey: taskQueryKey });
     },
     onError: (err: unknown) => {
-      enqueueSnackbar((err as Error)?.message || "Failed to reopen task.", { variant: "error" });
+      enqueueSnackbar((err as Error)?.message || "Failed to reopen task.", {
+        variant: "error",
+      });
     },
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: (newStatus: string) => changeTaskStatus(taskId, newStatus, closingNotes,),
+    mutationFn: (status: string) =>
+      changeTaskStatus(taskId, user?.id, status, closingNotes),
     onSuccess: () => {
-      enqueueSnackbar("Task status updated successfully.", { variant: "success" });
-      setIsStatusModalOpen(false);
-      setClosingNotes("");
+      enqueueSnackbar("Task status updated successfully.", {
+        variant: "success",
+      });
+      closeUpdateStatusModal();
       queryClient.invalidateQueries({ queryKey: taskQueryKey });
     },
     onError: (err: unknown) => {
-      enqueueSnackbar((err as Error)?.message || "Failed to update task status.", { variant: "error" });
+      enqueueSnackbar((err as Error)?.message || "Failed to update task status.", {
+        variant: "error",
+      });
     },
   });
-  const closeUpdateStatusModal =()=>{
+
+  const closeUpdateStatusModal = () => {
     setIsStatusModalOpen(false);
     setNewStatus("");
     setClosingNotes("");
-  }
+  };
 
   const deleteTaskMutation = useMutation({
-    mutationFn: () => deleteTask(taskId),
+    mutationFn: () => deleteTask(taskId, user?.id),
     onSuccess: () => {
       enqueueSnackbar("Task deleted successfully.", { variant: "success" });
       router.push("/tasks");
     },
     onError: (err: unknown) => {
-      enqueueSnackbar((err as Error)?.message || "Failed to delete task.", { variant: "error" });
+      enqueueSnackbar((err as Error)?.message || "Failed to delete task.", {
+        variant: "error",
+      });
     },
   });
 
@@ -134,28 +167,33 @@ export default function TaskDetailsPage() {
     e.preventDefault();
     if (!reassignUserId) return;
     reassignMutation.mutate(reassignUserId);
-    setTimeout(() => { setIsReassignModalOpen(false) }, 1000);
   };
-
 
   const handleStatusSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStatus) return;
     updateStatusMutation.mutate(newStatus);
-    setTimeout(() => { setIsStatusModalOpen(false) }, 1000);
-  }
+  };
+
+  const openSla = (
+    e: React.MouseEvent<HTMLButtonElement>,
+    id: string | undefined
+  ) => {
+    if (!id) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setIsSlaOpen(true);
+  };
 
   const handleDeleteClick = async () => {
     const confirmed = await confirm({
       title: "Delete Task",
-      message: "Are you sure you want to delete this task? This action cannot be undone.",
+      message:
+        "Are you sure you want to delete this task? This action cannot be undone.",
       confirmText: "Delete",
       cancelText: "Cancel",
     });
-
-    if (confirmed) {
-      deleteTaskMutation.mutate();
-    }
+    if (confirmed) deleteTaskMutation.mutate();
   };
 
   const handleReopenClick = async () => {
@@ -165,16 +203,15 @@ export default function TaskDetailsPage() {
       confirmText: "Reopen",
       cancelText: "Cancel",
     });
-
-    if (confirmed) {
-      reopenTaskMutation.mutate();
-    }
+    if (confirmed) reopenTaskMutation.mutate();
   };
 
   if (!isAuthReady) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <p className="text-sm font-semibold text-indigo-900">Loading details...</p>
+        <p className="text-sm font-semibold text-indigo-900">
+          Loading details...
+        </p>
       </div>
     );
   }
@@ -187,15 +224,18 @@ export default function TaskDetailsPage() {
     );
   }
 
-
   const assignedUserLabel = task
-    ? [task.assignedToUserFirstName, task.assignedToUserLastName].filter(Boolean).join(" ") || task.assignedToUser || "Unassigned"
+    ? [task.assignedToUserFirstName, task.assignedToUserLastName]
+        .filter(Boolean)
+        .join(" ") ||
+      task.assignedToUser ||
+      "Unassigned"
     : "Unassigned";
 
   const isClosed = task?.status === TaskStatusList.Closed;
 
   return (
-    <ProtectedPage permission={PermissionKeys.TasksView}>
+    <>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-10">
         <main className="mx-auto flex w-full max-w-6xl flex-col gap-6">
           <div className="flex items-center justify-between">
@@ -203,13 +243,41 @@ export default function TaskDetailsPage() {
               href="/tasks"
               className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-300 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
-              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              <svg
+                className="size-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
               Back to Tasks
             </Link>
 
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsAuditTrailOpen(true)}
+                disabled={!task?.id}
+                className="rounded-md bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+              >
+                View Audit Trail
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => openSla(e, task?.id)}
+                disabled={!task?.id}
+                className="rounded-md bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+              >
+                View SLA
+              </button>
+
               {isClosed && (
                 <button
                   type="button"
@@ -219,6 +287,7 @@ export default function TaskDetailsPage() {
                   Reopen Task
                 </button>
               )}
+
               {!isClosed && (
                 <button
                   type="button"
@@ -228,6 +297,7 @@ export default function TaskDetailsPage() {
                   Update Status
                 </button>
               )}
+
               {!isClosed && (
                 <button
                   type="button"
@@ -237,37 +307,57 @@ export default function TaskDetailsPage() {
                   Reassign Task
                 </button>
               )}
-              {user.role == 'Admin' && <button
-                type="button"
-                onClick={handleDeleteClick}
-                disabled={deleteTaskMutation.isPending}
-                className="inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 cursor-pointer disabled:opacity-50"
-              >
-                Delete Task
-              </button>}
+
+              {user.role === "Admin" && (
+                <button
+                  type="button"
+                  onClick={handleDeleteClick}
+                  disabled={deleteTaskMutation.isPending}
+                  className="inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 cursor-pointer disabled:opacity-50"
+                >
+                  Delete Task
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Load States */}
           {isTaskLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3 rounded-2xl bg-white/50 border border-slate-200 shadow-sm backdrop-blur">
-              <svg className="size-8 animate-spin text-indigo-600" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor" />
+              <svg
+                className="size-8 animate-spin text-indigo-600"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  fill="currentColor"
+                />
               </svg>
-              <p className="text-sm font-semibold text-slate-700">Loading task details...</p>
+              <p className="text-sm font-semibold text-slate-700">
+                Loading task details...
+              </p>
             </div>
           ) : isTaskError || !task ? (
             <ErrorPanel
               title="Could not load task details"
-              message={(taskError as Error)?.message || "The requested task could not be retrieved."}
+              message={
+                (taskError as Error)?.message ||
+                "The requested task could not be retrieved."
+              }
               onRetry={() => refetchTask()}
             />
           ) : (
             <div className="grid gap-6 lg:grid-cols-3">
-              {/* Left Column (2/3 width) - Task Details and Email Body */}
               <div className="lg:col-span-2 flex flex-col gap-6">
-                {/* Email Viewer Card */}
                 <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                   <div className="border-b border-slate-100 pb-5">
                     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -285,7 +375,7 @@ export default function TaskDetailsPage() {
                               ? "bg-slate-50 text-slate-700 ring-slate-600/10"
                               : task.status === TaskStatusList.Assigned
                                 ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
-                                : "bg-blue-50 text-blue-700 ring-blue-600/20"
+                                : "bg-blue-50 text-blue-700 ring-blue-600/20",
                           ].join(" ")}
                         >
                           {task.status}
@@ -295,16 +385,24 @@ export default function TaskDetailsPage() {
 
                     <div className="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
                       <div>
-                        <span className="font-semibold text-slate-800">From:</span> {task.fromEmail || "Unknown Sender"}
+                        <span className="font-semibold text-slate-800">
+                          From:
+                        </span>{" "}
+                        {task.fromEmail || "Unknown Sender"}
                       </div>
                       <div>
-                        <span className="font-semibold text-slate-800">To Mailbox:</span> {task.emailAccountAddress || "N/A"}
+                        <span className="font-semibold text-slate-800">
+                          To Mailbox:
+                        </span>{" "}
+                        {task.emailAccountAddress || "N/A"}
                       </div>
                     </div>
                   </div>
 
                   <div className="mt-5">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Email Body</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Email Body
+                    </h3>
                     <div className="mt-3 min-h-48 overflow-y-auto rounded-xl border border-slate-150 bg-slate-50 p-4 font-mono text-sm leading-relaxed text-slate-800 whitespace-pre-wrap break-words">
                       {task.emailBody || "(No Body Content)"}
                     </div>
@@ -312,19 +410,29 @@ export default function TaskDetailsPage() {
                 </section>
 
                 <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-slate-900">Task Notes & Updates</h3>
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    Task Notes & Updates
+                  </h3>
 
                   {task.additionalInformation ? (
                     <div className="mt-4 rounded-xl bg-slate-50 p-4 border border-slate-100 text-sm text-slate-700 whitespace-pre-wrap">
                       {task.additionalInformation}
                     </div>
                   ) : (
-                    <p className="mt-4 text-sm text-slate-500 italic">No notes added yet.</p>
+                    <p className="mt-4 text-sm text-slate-500 italic">
+                      No notes added yet.
+                    </p>
                   )}
 
                   {!isClosed && (
-                    <form onSubmit={handleAddNote} className="mt-6 border-t border-slate-100 pt-4">
-                      <label htmlFor="noteInput" className="block text-sm font-semibold text-slate-700">
+                    <form
+                      onSubmit={handleAddNote}
+                      className="mt-6 border-t border-slate-100 pt-4"
+                    >
+                      <label
+                        htmlFor="noteInput"
+                        className="block text-sm font-semibold text-slate-700"
+                      >
                         Add Note
                       </label>
                       <div className="mt-2 flex gap-3">
@@ -351,22 +459,34 @@ export default function TaskDetailsPage() {
 
               <div className="flex flex-col gap-6">
                 <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-slate-900">Task Ownership</h3>
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    Task Ownership
+                  </h3>
 
                   <div className="mt-4 space-y-4">
                     <div>
-                      <span className="block text-xs font-bold uppercase tracking-wider text-slate-400">Assigned Teammate</span>
-                      <p className="mt-1 font-semibold text-slate-900">{assignedUserLabel}</p>
+                      <span className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+                        Assigned Teammate
+                      </span>
+                      <p className="mt-1 font-semibold text-slate-900">
+                        {assignedUserLabel}
+                      </p>
                     </div>
 
                     {!isClosed && (
-                      <form onSubmit={handleReassign} className="border-t border-slate-100 pt-4">
-                        <label htmlFor="reassignSelect" className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+                      <form
+                        onSubmit={handleReassign}
+                        className="border-t border-slate-100 pt-4"
+                      >
+                        <label
+                          htmlFor="reassignSelectInline"
+                          className="block text-xs font-bold uppercase tracking-wider text-slate-400"
+                        >
                           Reassign Task
                         </label>
                         <div className="mt-2 flex gap-2">
                           <select
-                            id="reassignSelect"
+                            id="reassignSelectInline"
                             value={reassignUserId}
                             onChange={(e) => setReassignUserId(e.target.value)}
                             className="block w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
@@ -375,7 +495,10 @@ export default function TaskDetailsPage() {
                             {orgUsers
                               ?.filter((u) => u.id !== task.assignedToUser)
                               ?.map((u) => {
-                                const name = [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email;
+                                const name =
+                                  [u.firstName, u.lastName]
+                                    .filter(Boolean)
+                                    .join(" ") || u.email;
                                 return (
                                   <option key={u.id} value={u.id}>
                                     {name}
@@ -385,7 +508,9 @@ export default function TaskDetailsPage() {
                           </select>
                           <button
                             type="submit"
-                            disabled={reassignMutation.isPending || !reassignUserId}
+                            disabled={
+                              reassignMutation.isPending || !reassignUserId
+                            }
                             className="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition disabled:opacity-50 cursor-pointer"
                           >
                             Go
@@ -397,27 +522,39 @@ export default function TaskDetailsPage() {
                 </section>
 
                 <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-slate-900">Task Timeline</h3>
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    Task Timeline
+                  </h3>
                   <div className="mt-4 space-y-3 text-sm text-slate-600">
                     <div>
-                      <span className="font-semibold text-slate-800">Created:</span>{" "}
-                      {task.createdAt ? new Date(task.createdAt).toLocaleString() : "N/A"}
+                      <span className="font-semibold text-slate-800">
+                        Created:
+                      </span>{" "}
+                      {task.createdAt
+                        ? new Date(task.createdAt).toLocaleString()
+                        : "N/A"}
                     </div>
                     {task.updatedAt && (
                       <div>
-                        <span className="font-semibold text-slate-800">Last Updated:</span>{" "}
+                        <span className="font-semibold text-slate-800">
+                          Last Updated:
+                        </span>{" "}
                         {new Date(task.updatedAt).toLocaleString()}
                       </div>
                     )}
                     {task.assignedToUserDate && (
                       <div>
-                        <span className="font-semibold text-slate-800">Assigned on:</span>{" "}
+                        <span className="font-semibold text-slate-800">
+                          Assigned on:
+                        </span>{" "}
                         {new Date(task.assignedToUserDate).toLocaleString()}
                       </div>
                     )}
                     {task.closedDate && (
                       <div>
-                        <span className="font-semibold text-slate-800">Closed on:</span>{" "}
+                        <span className="font-semibold text-slate-800">
+                          Closed on:
+                        </span>{" "}
                         {new Date(task.closedDate).toLocaleString()}
                       </div>
                     )}
@@ -428,27 +565,135 @@ export default function TaskDetailsPage() {
           )}
         </main>
       </div>
+
+      {isAuditTrailOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-all duration-300">
+          <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <h3 className="text-lg font-semibold text-slate-900">
+                Task Audit Trail
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsAuditTrailOpen(false)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+              >
+                <svg
+                  className="size-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mt-4 max-h-[70vh] overflow-y-auto">
+              {isAuditTrailLoading ? (
+                <div className="flex items-center justify-center py-8 text-sm text-slate-600">
+                  Loading audit trail...
+                </div>
+              ) : isAuditTrailError ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-rose-600">
+                    {(auditTrailError as Error)?.message ||
+                      "Could not load audit trail."}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => refetchAuditTrail()}
+                    className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : auditTrail.length === 0 ? (
+                <p className="text-sm text-slate-500 italic">
+                  No audit trail entries found.
+                </p>
+              ) : (
+                <ul className="space-y-3">
+                  {auditTrail.map((entry: TaskAuditTrailDto) => (
+                    <li
+                      key={entry.id}
+                      className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-slate-800">
+                          {entry.userName || "System"}
+                        </p>
+                        <span className="text-xs text-slate-500">
+                          {entry.createdAt
+                            ? new Date(entry.createdAt).toLocaleString()
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm text-slate-700 whitespace-pre-wrap">
+                        {entry.comment || "No comment"}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="mt-6 flex justify-end border-t border-slate-100 pt-4">
+              <button
+                type="button"
+                onClick={() => setIsAuditTrailOpen(false)}
+                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Modal */}
       {isStatusModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-all duration-300">
           <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <h3 className="text-lg font-semibold text-slate-900">Update Status</h3>
+              <h3 className="text-lg font-semibold text-slate-900">
+                Update Status
+              </h3>
               <button
                 type="button"
-                onClick={() => setIsStatusModalOpen(false)}
+                onClick={closeUpdateStatusModal}
                 className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
               >
-                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="size-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
             <form onSubmit={handleStatusSubmit} className="mt-4 space-y-4">
               <div>
-                <label htmlFor="newStatus" className="block text-sm font-semibold text-slate-700">
+                <label
+                  htmlFor="newStatus"
+                  className="block text-sm font-semibold text-slate-700"
+                >
                   New Status
                 </label>
                 <select
+                  id="newStatus"
                   value={newStatus}
                   onChange={(e) => {
                     const val = e.target.value;
@@ -462,35 +707,44 @@ export default function TaskDetailsPage() {
                   <option value={TaskStatusList.Closed}>CLOSED</option>
                 </select>
               </div>
-                <div>
-                  <label htmlFor="closingNotes" className="block text-sm font-semibold text-slate-700">
-                    Additional Information Information
-                  </label>
-                  <textarea
-                    id="closingNotes"
-                    required
-                    rows={4}
-                    value={closingNotes}
-                    onChange={(e) => setClosingNotes(e.target.value)}
-                    placeholder="Summarize the action taken to resolve this task..."
-                    className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                  />
-                </div>
-              
+              <div>
+                <label
+                  htmlFor="closingNotes"
+                  className="block text-sm font-semibold text-slate-700"
+                >
+                  Additional Information
+                </label>
+                <textarea
+                  id="closingNotes"
+                  required
+                  rows={4}
+                  value={closingNotes}
+                  onChange={(e) => setClosingNotes(e.target.value)}
+                  placeholder="Summarize the action taken to resolve this task..."
+                  className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                />
+              </div>
+
               <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setIsStatusModalOpen(false)}
+                  onClick={closeUpdateStatusModal}
                   className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={updateStatusMutation.isPending|| !closingNotes || !newStatus}
+                  disabled={
+                    updateStatusMutation.isPending ||
+                    !closingNotes ||
+                    !newStatus
+                  }
                   className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition disabled:opacity-50 cursor-pointer"
                 >
-                  {updateStatusMutation.isPending ? "Updating..." : "Update Status"}
+                  {updateStatusMutation.isPending
+                    ? "Updating..."
+                    : "Update Status"}
                 </button>
               </div>
             </form>
@@ -498,28 +752,44 @@ export default function TaskDetailsPage() {
         </div>
       )}
 
+      {/* Reassign Modal */}
       {isReassignModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-all duration-300">
           <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <h3 className="text-lg font-semibold text-slate-900">Reassign Task</h3>
+              <h3 className="text-lg font-semibold text-slate-900">
+                Reassign Task
+              </h3>
               <button
                 type="button"
                 onClick={() => setIsReassignModalOpen(false)}
                 className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
               >
-                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="size-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
             <form onSubmit={handleReassign} className="mt-4 space-y-4">
-              <label htmlFor="reassignSelect" className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+              <label
+                htmlFor="reassignSelectModal"
+                className="block text-xs font-bold uppercase tracking-wider text-slate-400"
+              >
                 New user
               </label>
               <div className="mt-2 flex gap-2">
                 <select
-                  id="reassignSelect"
+                  id="reassignSelectModal"
                   value={reassignUserId}
                   onChange={(e) => setReassignUserId(e.target.value)}
                   className="block w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
@@ -528,7 +798,9 @@ export default function TaskDetailsPage() {
                   {orgUsers
                     ?.filter((u) => u.id !== task?.assignedToUser)
                     ?.map((u) => {
-                      const name = [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email;
+                      const name =
+                        [u.firstName, u.lastName].filter(Boolean).join(" ") ||
+                        u.email;
                       return (
                         <option key={u.id} value={u.id}>
                           {name}
@@ -557,6 +829,12 @@ export default function TaskDetailsPage() {
           </div>
         </div>
       )}
-    </ProtectedPage>
+
+      <SlaModal
+        taskId={taskId}
+        open={isSlaOpen}
+        onClose={() => setIsSlaOpen(false)}
+      />
+    </>
   );
 }

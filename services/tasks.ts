@@ -17,11 +17,41 @@ export type TaskDto = {
     additionalInformation?: string;
     category?: string;
 };
+export type TaskAuditTrailDto = {
+  id: string;
+  userName: string;
+  comment: string;
+  createdAt: string;
+  emailTaskId: string;
+};
+export type SLADto = {
+    id: string;
+    startTime: Date;
+    endTime?: Date;
+    comments: string;
+    status: string;
+    userName:string;
+}
 export enum TaskStatusList {
-  Assigned = "Assigned",
-  Hold = "Hold",
-  Escalated = "Escalated",
-  Closed = "Closed",
+    Assigned = "Assigned",
+    Hold = "Hold",
+    Escalated = "Escalated",
+    Closed = "Closed",
+}
+
+export const parseUtc=(value?: string | Date | null): Date | null=> {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+
+  let s = String(value).trim();
+  // If it already has a timezone (Z or ±hh:mm), leave it alone.
+  const hasTz = /(Z|[+-]\d{2}:?\d{2})$/.test(s);
+  if (!hasTz) {
+    // Replace space with "T" if needed, then append Z
+    s = s.replace(" ", "T") + "Z";
+  }
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 export const GetAllTasks = async (): Promise<TaskDto[]> => {
@@ -66,7 +96,7 @@ export const GetOpenTasks = async (): Promise<TaskDto[]> => {
     const data = await response.json();
     return data;
 };
-export const GetTasksByUser = async (userId: string): Promise<TaskDto[]> => {
+export const GetTasksByUser = async (userId: string|undefined): Promise<TaskDto[]> => {
     const response = await fetch(`${BASE_URL}/emailtasks/by-user/${userId}`, {
         method: 'GET',
         headers: {
@@ -131,13 +161,13 @@ export const GetTaskById = async (taskId: string): Promise<TaskDto> => {
     return data;
 };
 
-export const addTaskNotes = async (taskId: string, notes: string) => {
+export const addTaskNotes = async (taskId: string, notes: string,userId:string|undefined) => {
     const response = await fetch(`${BASE_URL}/emailtasks/add-notes/${taskId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ additionalInfo: notes, id: taskId }),
+        body: JSON.stringify({ additionalInfo: notes, id: taskId,userId}),
     });
     if (!response.ok) {
         const errors = await response.json();
@@ -153,13 +183,13 @@ export const addTaskNotes = async (taskId: string, notes: string) => {
 };
 
 
-export const closeTask = async (taskId: string, notes: string) => {
+export const closeTask = async (taskId: string, notes: string,userId:string|undefined) => {
     const response = await fetch(`${BASE_URL}/emailtasks/close-task/${taskId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ additionalInfo: notes, id: taskId }),
+        body: JSON.stringify({ additionalInfo: notes, id: taskId,userId }),
     });
     if (!response.ok) {
         const errors = await response.json();
@@ -175,13 +205,13 @@ export const closeTask = async (taskId: string, notes: string) => {
 
 };
 
-export const reassignedTask = async (taskId: string, newUserId: string) => {
+export const reassignedTask = async (taskId: string, newUserId: string,userId:string|undefined) => {
     const response = await fetch(`${BASE_URL}/emailtasks/reassign-task/${taskId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ newUserId: newUserId, id: taskId }),
+        body: JSON.stringify({ newUserId: newUserId, id: taskId ,userId}),
     });
     if (!response.ok) {
         const errors = await response.json();
@@ -197,8 +227,8 @@ export const reassignedTask = async (taskId: string, newUserId: string) => {
 
 };
 
-export const deleteTask = async (taskId: string) => {
-    const response = await fetch(`${BASE_URL}/emailtasks/${taskId}`, {
+export const deleteTask = async (taskId: string,userId:string|undefined) => {
+    const response = await fetch(`${BASE_URL}/emailtasks/${taskId}/${userId}`, {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
@@ -217,13 +247,13 @@ export const deleteTask = async (taskId: string) => {
     }
 
 };
-export const changeTaskStatus = async (taskId: string, newStatus: string, additionalInformation?: string,organisationId?:string) => {
+export const changeTaskStatus = async (taskId: string,userId:string|undefined, newStatus: string, additionalInformation?: string) => {
     const response = await fetch(`${BASE_URL}/emailtasks/update-status/${taskId}`, {
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ newStatus: newStatus, additionalInformation: additionalInformation, id: taskId,organisationId:organisationId }),
+        body: JSON.stringify({newStatus: newStatus,userId, additionalInformation: additionalInformation, id: taskId }),
     });
     if (!response.ok) {
         const errors = await response.json();
@@ -239,13 +269,13 @@ export const changeTaskStatus = async (taskId: string, newStatus: string, additi
 
 };
 
-export const ReOpenTask = async (taskId: string) => {
+export const ReOpenTask = async (taskId: string,userId:string|undefined) => {
     const response = await fetch(`${BASE_URL}/emailtasks/reopen-task/${taskId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({id: taskId }),
+        body: JSON.stringify({ id: taskId,userId }),
     });
     if (!response.ok) {
         const errors = await response.json();
@@ -261,7 +291,7 @@ export const ReOpenTask = async (taskId: string) => {
 
 };
 
-export const UserTasksSummary = async (userId: string|null|undefined) => {
+export const UserTasksSummary = async (userId: string | null | undefined) => {
     const response = await fetch(`${BASE_URL}/emailtasks/summary/${userId}`, {
         method: 'GET',
         headers: {
@@ -283,4 +313,49 @@ export const UserTasksSummary = async (userId: string|null|undefined) => {
     return data;
 
 };
+
+export const GetSLAForTask = async (taskId: string): Promise<SLADto[]> => {
+    const response = await fetch(`${BASE_URL}/SLATracking/emailtask/${taskId}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+    if (!response.ok) {
+        const errors = await response.json();
+        if (errors.errors) {
+            const message = Object.values(errors.errors)
+                .flat()
+                .join(", ");
+            throw new Error(message)
+        } else {
+            throw new Error(errors.detail || "Failed to fetch tasks");
+        }
+    }
+    const data = await response.json();
+    return data;
+};
+
+export const GetAuditTrailForTask = async (taskId: string): Promise<TaskAuditTrailDto[]> => {
+    const response = await fetch(`${BASE_URL}/TaskAudit/by-task/${taskId}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+    if (!response.ok) {
+        const errors = await response.json();
+        if (errors.errors) {
+            const message = Object.values(errors.errors)
+                .flat()
+                .join(", ");
+            throw new Error(message)
+        } else {
+            throw new Error(errors.detail || "Failed to fetch tasks");
+        }
+    }
+    const data = await response.json();
+    return data;
+};
+
 
