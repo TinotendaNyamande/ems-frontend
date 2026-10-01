@@ -297,7 +297,9 @@ export default function TasksPage() {
                       {/* Assigned To */}
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-slate-700">
-                          {task.assignedToUserFirstName || "Unassigned"}
+                          {task.assignedToUserFirstName && task.assignedToUserLastName
+                            ? `${task.assignedToUserFirstName} ${task.assignedToUserLastName}`
+                            : "Unassigned"}
                         </p>
                       </div>
 

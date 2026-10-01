@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSnackbar } from "notistack";
 import { useAuth } from "@/context/AuthContext";
@@ -22,6 +22,23 @@ import {
 import { getAllUsers } from "@/services/users";
 import { ErrorPanel } from "@/components/ErrorPanel";
 import { useConfirm } from "@/context/useConfirm";
+import AttachmentModal from "@/components/AttachmentModal";
+
+const formatFileSize = (bytes: number) => {
+  if (!bytes) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+};
+
+const getFileIcon = (fileType: string) => {
+  if (fileType?.includes("pdf")) return "📄";
+  if (fileType?.startsWith("image/")) return "🖼️";
+  if (fileType?.includes("word") || fileType?.includes("document")) return "📝";
+  if (fileType?.includes("sheet") || fileType?.includes("excel")) return "📊";
+  if (fileType?.includes("zip") || fileType?.includes("compressed")) return "🗜️";
+  return "📎";
+};
 
 export default function TaskDetailsPage() {
   const params = useParams<{ id: string }>();
@@ -47,6 +64,12 @@ export default function TaskDetailsPage() {
     () => ["taskAuditTrail", taskId, token],
     [taskId, token]
   );
+
+  const [previewAttachment, setPreviewAttachment] = useState<{
+    id: string;
+    fileName: string;
+    fileType: string;
+  } | null>(null);
 
   const {
     data: task,
@@ -226,13 +249,14 @@ export default function TaskDetailsPage() {
 
   const assignedUserLabel = task
     ? [task.assignedToUserFirstName, task.assignedToUserLastName]
-        .filter(Boolean)
-        .join(" ") ||
-      task.assignedToUser ||
-      "Unassigned"
+      .filter(Boolean)
+      .join(" ") ||
+    task.assignedToUserId ||
+    "Unassigned"
     : "Unassigned";
 
   const isClosed = task?.status === TaskStatusList.Closed;
+
 
   return (
     <>
@@ -409,6 +433,63 @@ export default function TaskDetailsPage() {
                   </div>
                 </section>
 
+                {task.attachments && task.attachments.length > 0 && (
+                  <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-slate-900">
+                        Attachments
+                      </h3>
+                      <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+                        {task.attachments.length}
+                      </span>
+                    </div>
+
+                    <ul className="mt-4 divide-y divide-slate-100">
+                      {task.attachments.map((att, idx) => (
+                        <li key={`${att.fileName}-${idx}`}>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPreviewAttachment({
+                                id: att.id,
+                                fileName: att.fileName,
+                                fileType: att.fileType,
+                              })
+                            }
+                            className="flex w-full items-center justify-between gap-4 py-3 text-left rounded-lg px-2 -mx-2 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 cursor-pointer"
+                          >
+                            <div className="flex min-w-0 items-center gap-3">
+                              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-lg">
+                                {getFileIcon(att.fileType)}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-slate-800">
+                                  {att.fileName}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                  {att.fileType || "Unknown"} • {formatFileSize(att.fileSize)}
+                                </p>
+                              </div>
+                            </div>
+                            <span className="shrink-0 text-xs font-semibold text-indigo-600">
+                              View
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+                {previewAttachment && (
+                  <AttachmentModal
+                    attachmentId={previewAttachment.id}
+                    fileName={previewAttachment.fileName}
+                    fileType={previewAttachment.fileType}
+                    open={Boolean(previewAttachment)}
+                    onClose={() => setPreviewAttachment(null)}
+                  />
+                )}
+
                 <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                   <h3 className="text-lg font-semibold text-slate-900">
                     Task Notes & Updates
@@ -472,52 +553,6 @@ export default function TaskDetailsPage() {
                         {assignedUserLabel}
                       </p>
                     </div>
-
-                    {!isClosed && (
-                      <form
-                        onSubmit={handleReassign}
-                        className="border-t border-slate-100 pt-4"
-                      >
-                        <label
-                          htmlFor="reassignSelectInline"
-                          className="block text-xs font-bold uppercase tracking-wider text-slate-400"
-                        >
-                          Reassign Task
-                        </label>
-                        <div className="mt-2 flex gap-2">
-                          <select
-                            id="reassignSelectInline"
-                            value={reassignUserId}
-                            onChange={(e) => setReassignUserId(e.target.value)}
-                            className="block w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                          >
-                            <option value="">Select teammate...</option>
-                            {orgUsers
-                              ?.filter((u) => u.id !== task.assignedToUser)
-                              ?.map((u) => {
-                                const name =
-                                  [u.firstName, u.lastName]
-                                    .filter(Boolean)
-                                    .join(" ") || u.email;
-                                return (
-                                  <option key={u.id} value={u.id}>
-                                    {name}
-                                  </option>
-                                );
-                              })}
-                          </select>
-                          <button
-                            type="submit"
-                            disabled={
-                              reassignMutation.isPending || !reassignUserId
-                            }
-                            className="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition disabled:opacity-50 cursor-pointer"
-                          >
-                            Go
-                          </button>
-                        </div>
-                      </form>
-                    )}
                   </div>
                 </section>
 
@@ -796,7 +831,7 @@ export default function TaskDetailsPage() {
                 >
                   <option value="">Select teammate...</option>
                   {orgUsers
-                    ?.filter((u) => u.id !== task?.assignedToUser)
+                    ?.filter((u) => u.id !== task?.assignedToUserId)
                     ?.map((u) => {
                       const name =
                         [u.firstName, u.lastName].filter(Boolean).join(" ") ||
