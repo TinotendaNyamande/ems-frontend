@@ -19,9 +19,6 @@ import {
   validateEmailAccount,
   type EmailAccountDto,
 } from "@/services/emailAccounts";
-import { ProtectedPage } from "@/components/ProtectedPage";
-import { PermissionKeys } from "@/contants/PermissionKey";
-import { CanPerformAction } from "@/components/CanPerformAction";
 import { useConfirm } from "@/context/useConfirm";
 
 const EMAIL_TYPES = [
@@ -441,7 +438,7 @@ export default function EmailAccountDetailsPage() {
                   disabled={isBusy}
                   className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm ring-1 ring-indigo-600 transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {emailAccount.emailType == 1 || emailAccount.emailType == 2 ? "Change Password" : "Change App Secret"}
+                  {emailAccount.emailType == "Gmail" ? "Change Password" : "Change App Secret"}
                 </button>
                 <button
                   type="button"

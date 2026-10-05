@@ -486,13 +486,11 @@ export default function EmailCategoryMatrixPage() {
                         <p className="font-semibold text-slate-900">
                           {getUserDisplayNameFromMatrix(matrix)}
                         </p>
-                        <p className="mt-1 break-all text-sm text-slate-600">{matrix.userid}</p>
                       </div>
 
                       <div>
                         <p className="text-xs font-medium text-slate-500 md:hidden">Category</p>
                         <p className="font-semibold text-slate-900">{matrix.categoryName}</p>
-                        <p className="mt-1 break-all text-sm text-slate-600">{matrix.categoryId}</p>
                       </div>
 
                       <div>
